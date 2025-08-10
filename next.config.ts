@@ -1,5 +1,4 @@
 // File: next.config.ts
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -45,27 +44,20 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-    
     // Image optimization settings for better performance
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    
     // Allow SVG images (useful for icons and graphics)
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  
   experimental: {
     optimizeCss: true,
   },
-  
   // Enable compression for better performance
   compress: true,
-  
-  // Use SWC minifier for faster builds
-  swcMinify: true,
-  
+  // REMOVED: swcMinify (deprecated in Next.js 15+)
   // Security headers for production
   async headers() {
     return [
