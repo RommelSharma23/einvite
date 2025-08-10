@@ -60,6 +60,22 @@ export const metadata: Metadata = {
   verification: {
     google: 'google-site-verification-code', // Add your Google verification code
   },
+  // Add the missing metadataBase and viewport
+  metadataBase: new URL(APP_CONFIG.urls.app || 'http://localhost:3000'),
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+  },
+  // Add theme color
+  themeColor: '#2563eb',
+  // Additional meta tags
+  other: {
+    'theme-color': '#2563eb',
+    'msapplication-TileColor': '#2563eb',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+  },
 }
 
 export default function RootLayout({
@@ -69,26 +85,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <head>
-        {/* Preconnect to external domains for better performance */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        
-        {/* Theme color for mobile browsers */}
-        <meta name="theme-color" content="#2563eb" />
-        <meta name="msapplication-TileColor" content="#2563eb" />
-        
-        {/* Viewport meta tag for responsive design */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
-        
-        {/* DNS prefetch for better performance */}
-        <link rel="dns-prefetch" href="//fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="//fonts.gstatic.com" />
-        
-        {/* Security headers */}
-        <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-        <meta httpEquiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
-      </head>
       <body className={`${inter.className} h-full antialiased`}>
         {/* Global notifications container */}
         <div id="notifications" className="fixed top-0 right-0 z-50 p-4 space-y-4" />
