@@ -316,7 +316,14 @@ export default function EditorPage() {
         if (profileError) {
           console.error('Error loading user profile:', profileError)
         } else {
-          setUser(profileData)
+          // Create UserProfile object from the database data
+          const userProfile: UserProfile = {
+            id: profileData.id,
+            email: profileData.email,
+            full_name: profileData.full_name,
+            current_subscription: profileData.current_subscription
+          }
+          setUser(userProfile)
           console.log('User subscription tier:', profileData.current_subscription)
         }
 
