@@ -1,4 +1,4 @@
-// File: einvite/src/app/dashboard/layout.tsx
+// File: src/app/dashboard/layout.tsx
 
 'use client'
 
@@ -13,13 +13,19 @@ import {
   Menu, 
   X, 
   Crown,
-  //User as UserIcon,
   Bell
 } from 'lucide-react'
 import { getCurrentUser, signOut } from '@/lib/auth'
 import { APP_CONFIG } from '@/lib/config'
 import { cn } from '@/lib/utils'
-import type { User } from '@/types'
+
+// Custom user profile interface with subscription
+interface UserProfile {
+  id: string
+  email: string
+  full_name?: string
+  current_subscription: 'free' | 'silver' | 'gold' | 'platinum'
+}
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -54,7 +60,7 @@ const navigationItems = [
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -66,7 +72,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           router.push('/auth/login')
           return
         }
-        setUser(currentUser)
+        
+        // Create UserProfile object from the auth result
+        const userProfile: UserProfile = {
+          id: currentUser.id,
+          email: currentUser.email,
+          full_name: currentUser.full_name,
+          current_subscription: currentUser.current_subscription || 'free'
+        }
+        
+        setUser(userProfile)
       } catch (error) {
         console.error('Error loading user:', error)
         router.push('/auth/login')
