@@ -3,8 +3,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
-import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
+import { getCurrentUser } from '@/lib/auth'
+
+// User profile interface
+interface UserProfile {
+  id: string
+  email: string
+  full_name?: string
+  phone?: string
+  current_subscription: 'free' | 'silver' | 'gold' | 'platinum'
+  total_projects: number
+  is_active: boolean
+  profile_image_url?: string
+  created_at?: string
+  updated_at?: string
+}
 
 interface WeddingProject {
   id: string
@@ -35,27 +49,38 @@ interface CreateProjectData {
 }
 
 export function useProjects() {
-  const { user } = useAuth()
+  const [user, setUser] = useState<UserProfile | null>(null)
   const [projects, setProjects] = useState<WeddingProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
+  // Get current user on mount
   useEffect(() => {
-    if (user) {
-      fetchProjects()
-    } else {
-      setProjects([])
-      setLoading(false)
+    const initializeUser = async () => {
+      try {
+        const currentUser = await getCurrentUser()
+        setUser(currentUser)
+        
+        if (currentUser) {
+          await fetchProjects(currentUser.id)
+        } else {
+          setProjects([])
+        }
+      } catch (err) {
+        console.error('Error initializing user:', err)
+        setUser(null)
+        setProjects([])
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [user])
 
-  const fetchProjects = async () => {
-    if (!user) return
+    initializeUser()
+  }, [])
+
+  const fetchProjects = async (userId?: string) => {
+    const userIdToUse = userId || user?.id
+    if (!userIdToUse) return
 
     try {
       setLoading(true)
@@ -71,7 +96,7 @@ export function useProjects() {
             preview_image_url
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userIdToUse)
         .order('updated_at', { ascending: false })
 
       if (projectsError) throw projectsError
@@ -199,10 +224,12 @@ export function useProjects() {
       setProjects(prev => prev.filter(project => project.id !== projectId))
 
       // Update user's total projects count
-      await supabase
-        .from('users')
-        .update({ total_projects: projects.length - 1 })
-        .eq('id', user?.id)
+      if (user) {
+        await supabase
+          .from('users')
+          .update({ total_projects: Math.max(0, projects.length - 1) })
+          .eq('id', user.id)
+      }
 
       return true
     } catch (err) {
@@ -220,7 +247,14 @@ export function useProjects() {
     }) !== null
   }
 
+  const refreshProjects = async () => {
+    if (user) {
+      await fetchProjects(user.id)
+    }
+  }
+
   return {
+    user, // Added user to return values
     projects,
     loading,
     error,
@@ -228,7 +262,7 @@ export function useProjects() {
     updateProject,
     deleteProject,
     publishProject,
-    refreshProjects: fetchProjects,
+    refreshProjects,
     // Computed values
     publishedProjects: projects.filter(p => p.is_published),
     draftProjects: projects.filter(p => !p.is_published),
