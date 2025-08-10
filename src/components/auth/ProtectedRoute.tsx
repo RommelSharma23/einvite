@@ -1,11 +1,25 @@
-// File: einvite/src/components/auth/ProtectedRoute.tsx
+// File: src/components/auth/ProtectedRoute.tsx
 
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
+import { getCurrentUser } from '@/lib/auth'
 import { Loading } from '@/components/ui/loading'
+
+// User profile interface
+interface UserProfile {
+  id: string
+  email: string
+  full_name?: string
+  phone?: string
+  current_subscription: 'free' | 'silver' | 'gold' | 'platinum'
+  total_projects: number
+  is_active: boolean
+  profile_image_url?: string
+  created_at?: string
+  updated_at?: string
+}
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -13,13 +27,30 @@ interface ProtectedRouteProps {
   requireSubscription?: 'silver' | 'gold' | 'platinum'
 }
 
-export default function ProtectedRoute({ 
-  children, 
+export default function ProtectedRoute({
+  children,
   redirectTo = '/auth/login',
   requireSubscription
 }: ProtectedRouteProps) {
-  const { user, loading } = useAuth()
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const userProfile = await getCurrentUser()
+        setUser(userProfile)
+      } catch (error) {
+        console.error('Error checking authentication:', error)
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [])
 
   useEffect(() => {
     if (!loading) {
