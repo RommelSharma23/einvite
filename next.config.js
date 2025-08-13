@@ -1,7 +1,6 @@
-// File: next.config.ts
-import type { NextConfig } from "next";
+// File: next.config.js
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   images: {
     remotePatterns: [
       {
@@ -23,13 +22,7 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
-      // Wildcard pattern for any Supabase project (useful for development/staging)
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
-        port: '',
-        pathname: '/storage/v1/object/public/**',
-      },
+      // REMOVED: Wildcard pattern that was causing issues
       // Common placeholder/demo image services
       {
         protocol: 'https',
@@ -44,21 +37,16 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-    // Image optimization settings for better performance
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Allow SVG images (useful for icons and graphics)
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   experimental: {
     optimizeCss: true,
   },
-  // Enable compression for better performance
   compress: true,
-  // REMOVED: swcMinify (deprecated in Next.js 15+)
-  // Security headers for production
   async headers() {
     return [
       {
@@ -80,6 +68,6 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-};
+}
 
-export default nextConfig;
+module.exports = nextConfig
