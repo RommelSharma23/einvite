@@ -1,4 +1,4 @@
-// File: src/app/editor/[projectId]/page.tsx - Updated with Domain Tab
+// File: src/app/editor/[projectId]/page.tsx - Updated without Domain Editor
 
 'use client'
 
@@ -10,8 +10,8 @@ import {
   Calendar,
   Images,
   MessageCircle,
-  Users,
-  Globe  // ADD THIS IMPORT
+  Users
+  // REMOVED: Globe import
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -23,7 +23,7 @@ import { EventsEditor } from '@/components/editor/EventsEditor'
 import { GalleryEditor } from '@/components/editor/GalleryEditor'
 import { WishesEditor } from '@/components/editor/WishesEditor'
 import RSVPEditor from '@/components/editor/RSVPEditor'
-import { DomainEditor } from '@/components/editor/DomainEditor'  // ADD THIS IMPORT
+// REMOVED: DomainEditor import
 import type { WeddingProject } from '@/types'
 
 // Custom user profile interface with subscription
@@ -182,12 +182,7 @@ export default function EditorPage() {
   // Add subscription tier state
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'silver' | 'gold' | 'platinum'>('free')
 
-  // ADD: Domain-related handlers
-  const handleDomainVerified = useCallback((domain: string) => {
-    console.log(`Domain verified successfully: ${domain}`)
-    // You could show a success toast notification here
-    // toast.success(`Domain ${domain} verified successfully!`)
-  }, [])
+  // REMOVED: Domain-related handlers
 
   const handleUpgrade = useCallback((targetTier: string) => {
     console.log(`Upgrade requested to: ${targetTier}`)
@@ -616,8 +611,8 @@ export default function EditorPage() {
               </div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-                {/* UPDATED: Changed from grid-cols-6 to grid-cols-7 */}
-                <TabsList className="grid w-full grid-cols-7 mx-4 mt-4">
+                {/* UPDATED: Changed back to grid-cols-6 (removed domain tab) */}
+                <TabsList className="grid w-full grid-cols-6 mx-4 mt-4">
                   <TabsTrigger value="content" className="flex flex-col items-center p-2 text-xs">
                     <Type className="h-3 w-3 mb-1" />
                     <span>Content</span>
@@ -638,11 +633,7 @@ export default function EditorPage() {
                     <MessageCircle className="h-3 w-3 mb-1" />
                     <span>Wishes</span>
                   </TabsTrigger>
-                  {/* NEW: Domain Tab */}
-                  <TabsTrigger value="domain" className="flex flex-col items-center p-2 text-xs">
-                    <Globe className="h-3 w-3 mb-1" />
-                    <span>Domain</span>
-                  </TabsTrigger>
+                  {/* REMOVED: Domain Tab */}
                   <TabsTrigger value="style" className="flex flex-col items-center p-2 text-xs">
                     <Palette className="h-3 w-3 mb-1" />
                     <span>Style</span>
@@ -701,18 +692,7 @@ export default function EditorPage() {
                     </div>
                   </TabsContent>
 
-                  {/* NEW: Domain Tab Content */}
-                  <TabsContent value="domain" className="mt-0 h-full">
-                    <div className="space-y-4">
-                      <DomainEditor 
-                        projectId={projectId}
-                        userTier={user?.current_subscription || 'free'}
-                        currentSubdomain={project?.subdomain}
-                        onUpgrade={handleUpgrade}
-                        onDomainVerified={handleDomainVerified}
-                      />
-                    </div>
-                  </TabsContent>
+                  {/* REMOVED: Domain Tab Content */}
 
                   <TabsContent value="style" className="mt-0 h-full">
                     <div className="space-y-4">
