@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Completely disable static generation
+  // Completely disable all static generation
   output: 'standalone',
   
-  // Quick fix for Html import issues
+  // Disable all optimizations that might cause issues
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -11,88 +11,18 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
-  // Fix for the Html import error
+  // Minimal experimental settings
   experimental: {
     esmExternals: 'loose',
-    optimizeCss: true,
   },
   
+  // Disable image optimization temporarily
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
-      // Supabase storage domain - Updated with your actual domain
-      {
-        protocol: 'https',
-        hostname: 'qjlcbryoqlcpxtowpijx.supabase.co',
-        port: '',
-        pathname: '/storage/v1/object/public/**',
-      },
-      // Wildcard pattern for any Supabase project (useful for development/staging)
-      {
-        protocol: 'https',
-        hostname: '*.supabase.co',
-        port: '',
-        pathname: '/storage/v1/object/public/**',
-      },
-      // Common placeholder/demo image services
-      {
-        protocol: 'https',
-        hostname: 'via.placeholder.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-    // Image optimization settings for better performance
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Allow SVG images (useful for icons and graphics)
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    unoptimized: true,
   },
   
-  // Enable compression for better performance
-  compress: true,
-  
-  // Security headers for production
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-        ],
-      },
-    ]
-  },
+  // Disable all static generation
+  generateStaticParams: false,
 }
 
-export default nextConfig
+module.exports = nextConfig
