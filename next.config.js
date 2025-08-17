@@ -9,6 +9,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  
   // Fix for the Html import error
   experimental: {
     esmExternals: 'loose',
