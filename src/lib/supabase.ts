@@ -1,7 +1,6 @@
-// File: einvite/src/lib/supabase.ts
+// File: src/lib/supabase.ts
 
 import { createClient } from '@supabase/supabase-js'
-//import { Database } from '@/types'
 
 // Get environment variables with fallbacks
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -64,5 +63,31 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 })
 
 // Create admin client for server-side operations (only if service key is available)
+export const supabaseAdmin = supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null
 
-
+// Export a function to test the connection
+export async function testSupabaseConnection() {
+  try {
+    const { data, error } = await supabase
+      .from('templates')
+      .select('count', { count: 'exact', head: true })
+    
+    if (error) {
+      console.error('❌ Supabase connection test failed:', error.message)
+      return false
+    }
+    
+    console.log('✅ Supabase connection test passed')
+    return true
+  } catch (error) {
+    console.error('❌ Supabase connection test error:', error)
+    return false
+  }
+}
