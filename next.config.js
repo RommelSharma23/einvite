@@ -1,7 +1,8 @@
-// File: next.config.js
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Completely disable static generation
+  output: 'standalone',
+  
   // Quick fix for Html import issues
   eslint: {
     ignoreDuringBuilds: true,

@@ -1,5 +1,9 @@
 // File: src/app/[subdomain]/page.tsx
 
+// Add these exports at the very top to disable static generation
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 'use client'
 
 import { useState, useEffect } from 'react'
