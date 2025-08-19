@@ -2,9 +2,6 @@
 'use client'
 // Add these exports at the very top to disable static generation
 
-
-
-
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -72,6 +69,7 @@ interface WeddingProject {
   id: string
   title: string
   subdomain?: string
+  custom_domain?: string
   is_published: boolean
   view_count: number
   user_id: string
@@ -130,21 +128,75 @@ export default function PublishedWebsitePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadPublishedWebsite = async () => {
-      try {
-        setLoading(true)
+  // Function to get project by custom domain or subdomain
+  const getProjectByDomainOrSubdomain = async (domain: string, subdomain?: string) => {
+    try {
+      // First, try to find by custom domain (if it's not the main app domain)
+      if (domain && 
+          domain !== 'einvite.onrender.com' && 
+          domain !== 'localhost:3000' && 
+          domain !== 'localhost') {
+        
+        console.log('Searching for custom domain:', domain)
+        
+        const { data: projectByDomain, error: domainError } = await supabase
+          .from('wedding_projects')
+          .select('*')
+          .eq('custom_domain', domain)
+          .eq('is_published', true)
+          .single()
 
-        // Find project by subdomain (only published ones)
-        const { data: projectData, error: projectError } = await supabase
+        if (!domainError && projectByDomain) {
+          console.log('Found project by custom domain:', projectByDomain)
+          return projectByDomain
+        } else {
+          console.log('No project found for custom domain:', domain, domainError)
+        }
+      }
+
+      // If not found by custom domain or is main domain, try subdomain
+      if (subdomain) {
+        console.log('Searching for subdomain:', subdomain)
+        
+        const { data: projectBySubdomain, error: subdomainError } = await supabase
           .from('wedding_projects')
           .select('*')
           .eq('subdomain', subdomain)
           .eq('is_published', true)
           .single()
 
-        if (projectError || !projectData) {
-          console.error('Project not found:', projectError)
+        if (!subdomainError && projectBySubdomain) {
+          console.log('Found project by subdomain:', projectBySubdomain)
+          return projectBySubdomain
+        } else {
+          console.log('No project found for subdomain:', subdomain, subdomainError)
+        }
+      }
+
+      return null
+    } catch (error) {
+      console.error('Error fetching project:', error)
+      return null
+    }
+  }
+
+  useEffect(() => {
+    const loadPublishedWebsite = async () => {
+      try {
+        setLoading(true)
+
+        // Get the current domain and subdomain
+        const currentDomain = typeof window !== 'undefined' ? window.location.hostname : ''
+        const pathSegments = typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean) : []
+        const currentSubdomain = pathSegments[0] || subdomain
+
+        console.log('Loading website for:', { currentDomain, currentSubdomain, subdomain })
+
+        // Try to get project by domain first, then by subdomain
+        const projectData = await getProjectByDomainOrSubdomain(currentDomain, currentSubdomain)
+
+        if (!projectData) {
+          console.error('No project found for domain/subdomain')
           setError('Wedding website not found or not published yet')
           return
         }
@@ -243,10 +295,9 @@ export default function PublishedWebsitePage() {
       }
     }
 
-    if (subdomain) {
-      loadPublishedWebsite()
-    }
-  }, [subdomain])
+    // Load website on component mount
+    loadPublishedWebsite()
+  }, [subdomain]) // Keep subdomain dependency for when accessed via subdomain routes
 
   // Show loading screen
   if (loading) {
