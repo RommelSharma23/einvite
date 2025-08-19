@@ -1,8 +1,7 @@
 // File: src/app/preview/[projectId]/page.tsx
 
 'use client'
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Heart, Calendar, MapPin, Clock } from 'lucide-react'
