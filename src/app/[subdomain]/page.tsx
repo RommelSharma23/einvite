@@ -1,9 +1,9 @@
 // File: src/app/[subdomain]/page.tsx
 'use client'
-// Add these exports at the very top to disable static generation
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import { headers } from 'next/headers'
 import { supabase } from '@/lib/supabase'
 import { WeddingHeader } from '@/components/wedding/WeddingHeader'
 import { WeddingHero } from '@/components/wedding/WeddingHero'
@@ -127,16 +127,22 @@ export default function PublishedWebsitePage() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCustomDomain, setIsCustomDomain] = useState(false)
+  const [currentDomain, setCurrentDomain] = useState('')
 
-  // Function to get project by custom domain or subdomain
-  const getProjectByDomainOrSubdomain = async (domain: string, subdomain?: string) => {
+  // Enhanced function to get project by custom domain or subdomain
+  const getProjectByDomainOrSubdomain = async (domain: string, subdomainParam: string) => {
     try {
-      // First, try to find by custom domain (if it's not the main app domain)
-      if (domain && 
-          domain !== 'einvite.onrender.com' && 
-          domain !== 'localhost:3000' && 
-          domain !== 'localhost') {
-        
+      console.log('Fetching project for:', { domain, subdomainParam })
+
+      // Check if we're on a custom domain (not the main app domains)
+      const isMainDomain = domain === 'einvite.onrender.com' || 
+                          domain === 'localhost:3000' || 
+                          domain === 'localhost' ||
+                          domain.includes('einvite')
+
+      // First, try to find by custom domain if not main domain
+      if (!isMainDomain && domain) {
         console.log('Searching for custom domain:', domain)
         
         const { data: projectByDomain, error: domainError } = await supabase
@@ -148,28 +154,30 @@ export default function PublishedWebsitePage() {
 
         if (!domainError && projectByDomain) {
           console.log('Found project by custom domain:', projectByDomain)
+          setIsCustomDomain(true)
           return projectByDomain
         } else {
-          console.log('No project found for custom domain:', domain, domainError)
+          console.log('No project found for custom domain:', domain, domainError?.message)
         }
       }
 
       // If not found by custom domain or is main domain, try subdomain
-      if (subdomain) {
-        console.log('Searching for subdomain:', subdomain)
+      if (subdomainParam) {
+        console.log('Searching for subdomain:', subdomainParam)
         
         const { data: projectBySubdomain, error: subdomainError } = await supabase
           .from('wedding_projects')
           .select('*')
-          .eq('subdomain', subdomain)
+          .eq('subdomain', subdomainParam)
           .eq('is_published', true)
           .single()
 
         if (!subdomainError && projectBySubdomain) {
           console.log('Found project by subdomain:', projectBySubdomain)
+          setIsCustomDomain(false)
           return projectBySubdomain
         } else {
-          console.log('No project found for subdomain:', subdomain, subdomainError)
+          console.log('No project found for subdomain:', subdomainParam, subdomainError?.message)
         }
       }
 
@@ -180,6 +188,35 @@ export default function PublishedWebsitePage() {
     }
   }
 
+  // Function to update page title and meta tags for custom domains
+  const updatePageMetadata = (projectData: WeddingProject, contentData: ContentData, domain: string) => {
+    if (typeof document === 'undefined') return
+
+    const brideName = contentData.hero?.brideName || 'Bride'
+    const groomName = contentData.hero?.groomName || 'Groom'
+    const title = `${brideName} & ${groomName} - Wedding Invitation`
+
+    // Update page title
+    document.title = title
+
+    // Update meta description
+    const metaDescription = document.querySelector('meta[name="description"]')
+    if (metaDescription) {
+      metaDescription.setAttribute('content', `Join us for the wedding celebration of ${brideName} and ${groomName}`)
+    }
+
+    // Update canonical URL for custom domains
+    if (isCustomDomain) {
+      let canonicalLink = document.querySelector('link[rel="canonical"]')
+      if (!canonicalLink) {
+        canonicalLink = document.createElement('link')
+        canonicalLink.setAttribute('rel', 'canonical')
+        document.head.appendChild(canonicalLink)
+      }
+      canonicalLink.setAttribute('href', `https://${domain}`)
+    }
+  }
+
   useEffect(() => {
     const loadPublishedWebsite = async () => {
       try {
@@ -187,17 +224,23 @@ export default function PublishedWebsitePage() {
 
         // Get the current domain and subdomain
         const currentDomain = typeof window !== 'undefined' ? window.location.hostname : ''
-        const pathSegments = typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean) : []
-        const currentSubdomain = pathSegments[0] || subdomain
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
+        
+        setCurrentDomain(currentDomain)
 
-        console.log('Loading website for:', { currentDomain, currentSubdomain, subdomain })
+        console.log('Loading website for:', { 
+          currentDomain, 
+          subdomain, 
+          currentPath,
+          fullURL: typeof window !== 'undefined' ? window.location.href : ''
+        })
 
         // Try to get project by domain first, then by subdomain
-        const projectData = await getProjectByDomainOrSubdomain(currentDomain, currentSubdomain)
+        const projectData = await getProjectByDomainOrSubdomain(currentDomain, subdomain)
 
         if (!projectData) {
           console.error('No project found for domain/subdomain')
-          setError('Wedding website not found or not published yet')
+          setError('Wedding website not found or not published yet. Please check the URL.')
           return
         }
 
@@ -274,6 +317,9 @@ export default function PublishedWebsitePage() {
             }
           })
           setContent(processedContent)
+          
+          // Update page metadata after content is loaded
+          updatePageMetadata(projectData, processedContent, currentDomain)
         }
 
         setEvents(eventsData || [])
@@ -287,9 +333,15 @@ export default function PublishedWebsitePage() {
           shouldShowRSVP: ['gold', 'platinum'].includes(projectData.subscription_tier) || ['gold', 'platinum'].includes(ownerData?.current_subscription || 'free')
         })
 
+        console.log('Custom Domain Status:', {
+          isCustomDomain,
+          currentDomain,
+          projectCustomDomain: projectData.custom_domain
+        })
+
       } catch (error) {
         console.error('Error loading published website:', error)
-        setError('Failed to load wedding website')
+        setError('Failed to load wedding website. Please try again later.')
       } finally {
         setLoading(false)
       }
@@ -297,7 +349,7 @@ export default function PublishedWebsitePage() {
 
     // Load website on component mount
     loadPublishedWebsite()
-  }, [subdomain]) // Keep subdomain dependency for when accessed via subdomain routes
+  }, [subdomain])
 
   // Show loading screen
   if (loading) {
@@ -327,6 +379,14 @@ export default function PublishedWebsitePage() {
   // Main website render
   return (
     <div className="min-h-screen" style={{ fontFamily: styles.fontFamily }}>
+      {/* Custom domain indicator for debugging (remove in production) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-blue-100 text-blue-800 text-xs p-2 text-center">
+          {isCustomDomain ? `Custom Domain: ${currentDomain}` : `Subdomain: ${subdomain}`} 
+          | Project: {project.subdomain} | Tier: {projectOwner.current_subscription}
+        </div>
+      )}
+
       {/* Header Navigation */}
       <WeddingHeader
         brideName={content.hero?.brideName}
@@ -421,6 +481,28 @@ export default function PublishedWebsitePage() {
         primaryColor={styles.primaryColor}
         fontFamily={styles.fontFamily}
         viewCount={project.view_count}
+       
+      />
+
+      {/* Schema.org structured data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Event",
+            "name": `${content.hero?.brideName} & ${content.hero?.groomName} Wedding`,
+            "description": `Wedding celebration of ${content.hero?.brideName} and ${content.hero?.groomName}`,
+            "startDate": content.hero?.weddingDate,
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+            "organizer": {
+              "@type": "Person",
+              "name": `${content.hero?.brideName} & ${content.hero?.groomName}`
+            },
+            "url": isCustomDomain ? `https://${currentDomain}` : `https://einvite.onrender.com/${subdomain}`
+          })
+        }}
       />
     </div>
   )
