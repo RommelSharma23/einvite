@@ -1,82 +1,72 @@
-// middleware.js (place in root of project, same level as package.json)
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+// middleware.js (root of project)
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client for middleware
+// IMPORTANT: never use SERVICE_ROLE in middleware.
+// Use the public anon key + RLS-protected view.
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+);
+
+// Public paths (allowed without auth)
+// - root
+// - /john-jane-wedding and anything deeper (any slug: /[subdomain])
+// - next assets, favicon, static, images, auth routes themselves
+const PUBLIC_PATHS = [
+  /^\/$/,                             
+  /^\/[a-z0-9-]+(?:\/.*)?$/i,         
+  /^\/_next\/.*/i,
+  /^\/favicon\.ico$/i,
+  /^\/static\/.*/i,
+  /^\/images\/.*/i,
+  /^\/auth\/.*/i
+];
+
+function isPublic(path) {
+  return PUBLIC_PATHS.some((r) => r.test(path));
+}
 
 export async function middleware(request) {
-  const hostname = request.headers.get('host')
-  const url = request.nextUrl
-  
-  // Skip middleware for these paths
-  if (
-    url.pathname.startsWith('/_next') ||
-    url.pathname.startsWith('/api') ||
-    url.pathname.startsWith('/static') ||
-    url.pathname === '/favicon.ico' ||
-    url.pathname.startsWith('/dashboard') ||
-    url.pathname.startsWith('/auth')
-  ) {
-    return NextResponse.next()
+  const url = request.nextUrl;
+  const hostname = request.headers.get('host') || '';
+
+  // Always allow public paths through (prevents /auth/login redirect loops)
+  if (isPublic(url.pathname)) {
+    return NextResponse.next();
   }
 
-  // Your main domain - serve normally
-  if (hostname === 'einvite.onrender.com' || hostname === 'localhost:3000') {
-    return NextResponse.next()
+  // On your main host/local dev, let Next handle normally
+  if (hostname === 'einvite.onrender.com' || hostname.startsWith('localhost')) {
+    return NextResponse.next();
   }
 
-  // Handle custom domains
-  try {
-    console.log('Custom domain detected:', hostname)
-    
-    // Look up the project by custom domain
-    const { data: project, error } = await supabase
-      .from('wedding_projects')
-      .select('subdomain, id, title, is_published')
-      .eq('custom_domain', hostname)
-      .eq('is_published', true)
-      .single()
+  // For custom domains, map to the project's subdomain if published
+  const { data: project, error } = await supabase
+    // Create this view with RLS allowing select where is_published = true
+    .from('wedding_projects_public')
+    .select('subdomain,is_published')
+    .eq('custom_domain', hostname)
+    .eq('is_published', true)
+    .single();
 
-    if (error || !project) {
-      console.log('No project found for domain:', hostname)
-      return new NextResponse('Website not found', { status: 404 })
-    }
-
-    console.log('Found project for custom domain:', project)
-
-    // Rewrite to the correct wedding page
-    const rewriteUrl = url.clone()
-    rewriteUrl.pathname = `/${project.subdomain}${url.pathname === '/' ? '' : url.pathname}`
-    
-    // Add custom headers for the app to know it's a custom domain
-    const response = NextResponse.rewrite(rewriteUrl)
-    response.headers.set('x-custom-domain', hostname)
-    response.headers.set('x-project-subdomain', project.subdomain)
-    
-    console.log('Rewriting to:', rewriteUrl.pathname)
-    return response
-
-  } catch (error) {
-    console.error('Middleware error:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+  if (error || !project) {
+    return new NextResponse('Website not found', { status: 404 });
   }
+
+  // Keep deep paths: /photos -> /john-jane-wedding/photos
+  const rewriteUrl = url.clone();
+  rewriteUrl.pathname = `/${project.subdomain}${url.pathname === '/' ? '' : url.pathname}`;
+
+  const res = NextResponse.rewrite(rewriteUrl);
+  // Signal to your app/layout that this is a public page
+  res.headers.set('x-public-route', '1');
+  res.headers.set('x-custom-domain', hostname);
+  res.headers.set('x-project-subdomain', project.subdomain);
+  return res;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - dashboard (admin routes)
-     * - auth (authentication routes)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|dashboard|auth).*)',
-  ],
-}
+  // Don’t run on static assets/APIs/images
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
+};
