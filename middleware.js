@@ -9,8 +9,8 @@ const supabase = createClient(
 )
 
 // Public paths (skip auth checks)
+// ❌ Removed root ("/") so it's handled by custom domain logic
 const PUBLIC_PATHS = [
-  /^\/$/,                             // root
   /^\/[a-z0-9-]+(?:\/.*)?$/i,         // wedding project subdomain pages
   /^\/_next\/.*/i,                    // Next.js internals
   /^\/favicon\.ico$/i,
@@ -27,12 +27,12 @@ export async function middleware(request) {
   const url = request.nextUrl
   const hostname = request.headers.get('host') || ''
 
-  // ✅ Always allow public paths
+  // ✅ Allow public paths (wedding subdomains, assets, auth, etc.)
   if (isPublic(url.pathname)) {
     return NextResponse.next()
   }
 
-  // ✅ Skip middleware for main host or localhost (keep dashboard auth)
+  // ✅ Skip middleware for main host or localhost (dashboard + dev)
   if (
     hostname === 'einvite.onrender.com' ||
     hostname.startsWith('localhost')
@@ -52,14 +52,14 @@ export async function middleware(request) {
     return new NextResponse('Website not found', { status: 404 })
   }
 
-  // ✅ If root request → redirect to project subdomain (fixes dashboard login issue)
+  // ✅ Root request → redirect to project subdomain
   if (url.pathname === '/') {
     return NextResponse.redirect(
       new URL(`/${project.subdomain}`, request.url)
     )
   }
 
-  // ✅ For deep paths → rewrite to the correct project subdomain
+  // ✅ Deep paths → rewrite to correct project subdomain
   const rewriteUrl = url.clone()
   rewriteUrl.pathname = `/${project.subdomain}${url.pathname}`
 
