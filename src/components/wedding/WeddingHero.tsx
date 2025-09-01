@@ -35,19 +35,34 @@ export function WeddingHero({
 
   // Calculate countdown
   useEffect(() => {
-    if (!weddingDate) return
+    console.log('🕒 Timer Debug - weddingDate:', weddingDate)
+    if (!weddingDate) {
+      console.log('❌ Timer Debug - No wedding date provided')
+      return
+    }
 
     const calculateTimeLeft = () => {
       const weddingDateTime = new Date(weddingDate).getTime()
       const now = new Date().getTime()
       const difference = weddingDateTime - now
 
+      console.log('🕒 Timer Debug:', {
+        weddingDate,
+        weddingDateTime,
+        now,
+        difference,
+        isPast: difference <= 0
+      })
+
       if (difference > 0) {
         const days = Math.floor(difference / (1000 * 60 * 60 * 24))
         const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
         const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60))
-        setTimeLeft({ days, hours, minutes })
+        const timeLeft = { days, hours, minutes }
+        console.log('✅ Timer Debug - Setting timeLeft:', timeLeft)
+        setTimeLeft(timeLeft)
       } else {
+        console.log('❌ Timer Debug - Wedding date is in the past, hiding timer')
         setTimeLeft(null)
       }
     }

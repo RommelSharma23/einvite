@@ -1,3 +1,6 @@
 ﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Leaflet CSS for OpenStreetMap integration */
+@import 'leaflet/dist/leaflet.css';

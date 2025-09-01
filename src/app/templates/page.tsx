@@ -230,8 +230,21 @@ export default function TemplatesPage() {
       )
     }
 
+    // Sort templates: eligible templates first, then by popularity
+    filtered = filtered.sort((a, b) => {
+      const canAccessA = userProfile ? canAccessFeature(userProfile.current_subscription, a.tier_required) : a.tier_required === 'free'
+      const canAccessB = userProfile ? canAccessFeature(userProfile.current_subscription, b.tier_required) : b.tier_required === 'free'
+      
+      // If access status is different, prioritize accessible ones
+      if (canAccessA && !canAccessB) return -1
+      if (!canAccessA && canAccessB) return 1
+      
+      // If same access status, sort by popularity
+      return b.popularity_score - a.popularity_score
+    })
+
     setFilteredTemplates(filtered)
-  }, [templates, selectedCategory, searchQuery])
+  }, [templates, selectedCategory, searchQuery, userProfile])
 
   const createProject = async (template: Template) => {
     if (!user || !userProfile) return null
@@ -384,108 +397,206 @@ export default function TemplatesPage() {
 
         {/* Templates Grid */}
         {filteredTemplates.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredTemplates.map((template) => {
-              const canAccess = canUserAccessTemplate(template)
-              const isCreating = creatingProject === template.id
-
-              return (
-                <Card key={template.id} className="group hover:shadow-lg transition-shadow overflow-hidden">
-                  {/* Template Preview */}
-                  <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
-                    {template.preview_image_url ? (
-                      <Image
-                        src={template.preview_image_url}
-                        alt={template.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        onError={(e) => {
-                          // Fallback to placeholder if image fails to load
-                          const target = e.target as HTMLImageElement
-                          target.src = '/placeholder-template.jpg'
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
-                        <Sparkles className="h-12 w-12 text-blue-500" />
-                      </div>
-                    )}
-                    
-                    {/* Overlay */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview
-                      </Button>
-                    </div>
-
-                    {/* Tier Badge */}
-                    <div className="absolute top-3 right-3">
-                      <Badge variant={getTierBadgeVariant(template.tier_required)}>
-                        <Crown className="w-3 h-3 mr-1" />
-                        {template.tier_required}
-                      </Badge>
-                    </div>
-
-                    {/* Popularity Badge */}
-                    {template.popularity_score > 90 && (
-                      <div className="absolute top-3 left-3">
-                        <Badge variant="destructive">
-                          <Star className="w-3 h-3 mr-1" />
-                          Popular
-                        </Badge>
-                      </div>
-                    )}
+          <div>
+            {/* Available Templates Section */}
+            {filteredTemplates.some(t => canUserAccessTemplate(t)) && (
+              <div className="mb-12">
+                <div className="flex items-center mb-6">
+                  <div className="h-px bg-green-200 flex-1"></div>
+                  <div className="px-4 py-2 bg-green-50 rounded-full border border-green-200">
+                    <span className="text-green-700 font-medium text-sm">✨ Available for You</span>
                   </div>
+                  <div className="h-px bg-green-200 flex-1"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {filteredTemplates
+                    .filter(template => canUserAccessTemplate(template))
+                    .map((template) => {
+                      const canAccess = canUserAccessTemplate(template)
+                      const isCreating = creatingProject === template.id
 
-                  <CardHeader>
-                    <CardTitle className="text-lg">{template.name}</CardTitle>
-                    <CardDescription>{template.description}</CardDescription>
-                  </CardHeader>
+                      return (
+                        <Card key={template.id} className="group hover:shadow-lg transition-shadow overflow-hidden border-green-200 bg-green-50/30">
+                          {/* Template Preview */}
+                          <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+                            {template.preview_image_url ? (
+                              <Image
+                                src={template.preview_image_url}
+                                alt={template.name}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement
+                                  target.src = '/placeholder-template.jpg'
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-100 to-blue-100">
+                                <Sparkles className="h-12 w-12 text-green-500" />
+                              </div>
+                            )}
+                            
+                            {/* Overlay */}
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
+                              </Button>
+                            </div>
 
-                  <CardContent className="pt-0">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-500 capitalize">
-                        {template.category}
-                      </div>
-                      
-                      {canAccess ? (
-                        <Button
-                          onClick={() => handleCreateProject(template)}
-                          disabled={isCreating}
-                          size="sm"
-                        >
-                          {isCreating ? (
-                            <>
-                              <SimpleLoading size="sm" />
-                              <span className="ml-2">Creating...</span>
-                            </>
-                          ) : (
-                            <>
-                              Use Template
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            </>
-                          )}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push('/dashboard/settings?upgrade=true')}
-                        >
-                          <Crown className="mr-2 h-4 w-4" />
-                          Upgrade
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+                            {/* Available Badge */}
+                            <div className="absolute top-3 left-3">
+                              <Badge className="bg-green-500 hover:bg-green-600">
+                                ✓ Available
+                              </Badge>
+                            </div>
+
+                            {/* Popularity Badge */}
+                            {template.popularity_score > 90 && (
+                              <div className="absolute top-3 right-3">
+                                <Badge variant="destructive">
+                                  <Star className="w-3 h-3 mr-1" />
+                                  Popular
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+
+                          <CardHeader>
+                            <CardTitle className="text-lg text-green-800">{template.name}</CardTitle>
+                            <CardDescription>{template.description}</CardDescription>
+                          </CardHeader>
+
+                          <CardContent className="pt-0">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-gray-500 capitalize">
+                                {template.category}
+                              </div>
+                              
+                              <Button
+                                onClick={() => handleCreateProject(template)}
+                                disabled={isCreating}
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                {isCreating ? (
+                                  <>
+                                    <SimpleLoading size="sm" />
+                                    <span className="ml-2">Creating...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    Use Template
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* Locked Templates Section */}
+            {filteredTemplates.some(t => !canUserAccessTemplate(t)) && (
+              <div>
+                <div className="flex items-center mb-6">
+                  <div className="h-px bg-gray-200 flex-1"></div>
+                  <div className="px-4 py-2 bg-gray-50 rounded-full border border-gray-200">
+                    <span className="text-gray-600 font-medium text-sm">🔒 Premium Templates</span>
+                  </div>
+                  <div className="h-px bg-gray-200 flex-1"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {filteredTemplates
+                    .filter(template => !canUserAccessTemplate(template))
+                    .map((template) => {
+                      const canAccess = canUserAccessTemplate(template)
+                      const isCreating = creatingProject === template.id
+
+                      return (
+                        <Card key={template.id} className="group hover:shadow-lg transition-shadow overflow-hidden opacity-75 border-gray-200">
+                          {/* Template Preview */}
+                          <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+                            {template.preview_image_url ? (
+                              <Image
+                                src={template.preview_image_url}
+                                alt={template.name}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300 grayscale group-hover:grayscale-0"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement
+                                  target.src = '/placeholder-template.jpg'
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                <Sparkles className="h-12 w-12 text-gray-400" />
+                              </div>
+                            )}
+                            
+                            {/* Lock Overlay */}
+                            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                              <div className="text-center text-white">
+                                <Crown className="h-8 w-8 mx-auto mb-2" />
+                                <p className="text-sm font-medium">Premium</p>
+                              </div>
+                            </div>
+
+                            {/* Tier Badge */}
+                            <div className="absolute top-3 right-3">
+                              <Badge variant={getTierBadgeVariant(template.tier_required)}>
+                                <Crown className="w-3 h-3 mr-1" />
+                                {template.tier_required}
+                              </Badge>
+                            </div>
+
+                            {/* Popularity Badge */}
+                            {template.popularity_score > 90 && (
+                              <div className="absolute top-3 left-3">
+                                <Badge variant="secondary" className="bg-gray-600">
+                                  <Star className="w-3 h-3 mr-1" />
+                                  Popular
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+
+                          <CardHeader>
+                            <CardTitle className="text-lg text-gray-600">{template.name}</CardTitle>
+                            <CardDescription className="text-gray-500">{template.description}</CardDescription>
+                          </CardHeader>
+
+                          <CardContent className="pt-0">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-gray-400 capitalize">
+                                {template.category}
+                              </div>
+                              
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.push('/dashboard/settings?upgrade=true')}
+                                className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                              >
+                                <Crown className="mr-2 h-4 w-4" />
+                                Upgrade to {template.tier_required}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-12">

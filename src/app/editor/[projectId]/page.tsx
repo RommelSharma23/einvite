@@ -11,8 +11,8 @@ import {
   Calendar,
   Images,
   MessageCircle,
-  Users
-  // REMOVED: Globe import
+  Users,
+  MapPin
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -24,6 +24,7 @@ import { EventsEditor } from '@/components/editor/EventsEditor'
 import { GalleryEditor } from '@/components/editor/GalleryEditor'
 import { WishesEditor } from '@/components/editor/WishesEditor'
 import RSVPEditor from '@/components/editor/RSVPEditor'
+import { MapLocationEditor, type VenueLocation } from '@/components/editor/MapLocationEditor'
 // REMOVED: DomainEditor import
 import type { WeddingProject } from '@/types'
 
@@ -179,6 +180,9 @@ export default function EditorPage() {
     title: 'RSVP',
     subtitle: 'Please let us know if you\'ll be joining us for our special day!'
   })
+
+  // Add venue location state
+  const [venueLocation, setVenueLocation] = useState<VenueLocation | null>(null)
 
   // Add subscription tier state
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'silver' | 'gold' | 'platinum'>('free')
@@ -390,6 +394,27 @@ export default function EditorPage() {
         // Load gallery images
         await refreshGalleryImages()
 
+        // Load venue location
+        const { data: venueData, error: venueError } = await supabase
+          .from('venue_locations')
+          .select('*')
+          .eq('project_id', projectId)
+          .single()
+
+        if (venueError) {
+          console.log('No venue location found or error loading:', venueError)
+        } else if (venueData) {
+          const venue: VenueLocation = {
+            venueName: venueData.venue_name,
+            address: venueData.address,
+            latitude: venueData.latitude,
+            longitude: venueData.longitude,
+            description: venueData.description,
+            showDirections: venueData.show_directions
+          }
+          setVenueLocation(venue)
+        }
+
       } catch (error) {
         console.error('Error loading editor data:', error)
       } finally {
@@ -490,6 +515,39 @@ export default function EditorPage() {
           console.error('Error saving events:', eventsError)
           throw eventsError
         }
+      }
+
+      // Save venue location
+      if (venueLocation) {
+        console.log('🗺️ Saving venue location:', venueLocation)
+        const { error: venueError } = await supabase
+          .from('venue_locations')
+          .upsert({
+            project_id: projectId,
+            venue_name: venueLocation.venueName,
+            address: venueLocation.address,
+            latitude: venueLocation.latitude,
+            longitude: venueLocation.longitude,
+            description: venueLocation.description,
+            show_directions: venueLocation.showDirections,
+            updated_at: new Date().toISOString()
+          }, { 
+            onConflict: 'project_id'
+          })
+
+        if (venueError) {
+          console.error('❌ Error saving venue location:', venueError)
+          throw venueError
+        } else {
+          console.log('✅ Venue location saved successfully')
+        }
+      } else {
+        // Delete venue location if null
+        console.log('🗑️ Deleting venue location (set to null)')
+        await supabase
+          .from('venue_locations')
+          .delete()
+          .eq('project_id', projectId)
       }
 
       console.log('Content saved successfully!')
@@ -612,8 +670,8 @@ export default function EditorPage() {
               </div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-                {/* UPDATED: Changed back to grid-cols-6 (removed domain tab) */}
-                <TabsList className="grid w-full grid-cols-6 mx-4 mt-4">
+                {/* UPDATED: Added venue tab, now grid-cols-7 */}
+                <TabsList className="grid w-full grid-cols-7 mx-4 mt-4">
                   <TabsTrigger value="content" className="flex flex-col items-center p-2 text-xs">
                     <Type className="h-3 w-3 mb-1" />
                     <span>Content</span>
@@ -621,6 +679,10 @@ export default function EditorPage() {
                   <TabsTrigger value="events" className="flex flex-col items-center p-2 text-xs">
                     <Calendar className="h-3 w-3 mb-1" />
                     <span>Events</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="venue" className="flex flex-col items-center p-2 text-xs">
+                    <MapPin className="h-3 w-3 mb-1" />
+                    <span>Venue</span>
                   </TabsTrigger>
                   <TabsTrigger value="gallery" className="flex flex-col items-center p-2 text-xs">
                     <Images className="h-3 w-3 mb-1" />
@@ -634,7 +696,6 @@ export default function EditorPage() {
                     <MessageCircle className="h-3 w-3 mb-1" />
                     <span>Wishes</span>
                   </TabsTrigger>
-                  {/* REMOVED: Domain Tab */}
                   <TabsTrigger value="style" className="flex flex-col items-center p-2 text-xs">
                     <Palette className="h-3 w-3 mb-1" />
                     <span>Style</span>
@@ -659,6 +720,15 @@ export default function EditorPage() {
                       <EventsEditor 
                         events={events}
                         onEventsUpdate={updateEvents}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="venue" className="mt-0 h-full">
+                    <div className="space-y-4">
+                      <MapLocationEditor 
+                        venue={venueLocation}
+                        onVenueUpdate={setVenueLocation}
                       />
                     </div>
                   </TabsContent>
@@ -728,6 +798,7 @@ export default function EditorPage() {
                   userTier={subscriptionTier}
                   projectId={projectId}
                   rsvpConfig={rsvpConfig}
+                  venueLocation={venueLocation}
                 />
               </div>
             </div>

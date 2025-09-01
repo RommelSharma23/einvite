@@ -13,7 +13,9 @@ import {
   ExternalLink,
   Trash2,
   BarChart3,
-  QrCode
+  QrCode,
+  Camera,
+  X
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -54,6 +56,7 @@ interface ProjectContent {
   [projectId: string]: {
     brideName?: string
     groomName?: string
+    weddingDate?: string
   }
 }
 
@@ -73,6 +76,7 @@ export default function DashboardPage() {
   // QR Code Modal State
   const [qrModalOpen, setQrModalOpen] = useState(false)
   const [selectedProject, setSelectedProject] = useState<WeddingProject | null>(null)
+  
 
   useEffect(() => {
     const loadData = async () => {
@@ -128,7 +132,8 @@ export default function DashboardPage() {
             contentData.forEach(item => {
               contentMap[item.project_id] = {
                 brideName: item.content_data?.brideName,
-                groomName: item.content_data?.groomName
+                groomName: item.content_data?.groomName,
+                weddingDate: item.content_data?.weddingDate
               }
             })
             setProjectsContent(contentMap)
@@ -188,6 +193,10 @@ export default function DashboardPage() {
   const closeQRCodeModal = () => {
     setQrModalOpen(false)
     setSelectedProject(null)
+  }
+
+  const openPhotoUpload = (project: WeddingProject) => {
+    router.push(`/dashboard/photo-upload/${project.id}`)
   }
 
   const deleteProject = async (projectId: string) => {
@@ -502,6 +511,15 @@ export default function DashboardPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => openPhotoUpload(project)}
+                          title="Manage Photo Uploads"
+                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                        >
+                          <Camera className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => deleteProject(project.id)}
                           className="text-red-500 hover:text-red-700"
                           title="Delete Project"
@@ -516,6 +534,7 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
+
       </div>
 
       {/* QR Code Generator Modal */}
@@ -530,6 +549,7 @@ export default function DashboardPage() {
           groomName={projectsContent[selectedProject.id]?.groomName}
         />
       )}
+
     </div>
   )
 }

@@ -2,6 +2,28 @@
 
 import React, { useState } from 'react'
 import { Heart, Calendar, MapPin, Clock, Images, Eye, ChevronRight, Users, Send, Music, ChevronDown, ChevronUp } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import type { VenueLocation } from '@/components/wedding/WeddingMapLocation'
+
+// Dynamically import the map component to prevent SSR issues
+const WeddingMapLocation = dynamic(
+  () => import('@/components/wedding/WeddingMapLocation').then(mod => ({ default: mod.WeddingMapLocation })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <div className="h-8 w-64 bg-gray-200 animate-pulse rounded mx-auto mb-4" />
+          <div className="h-4 w-96 bg-gray-200 animate-pulse rounded mx-auto" />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="h-96 bg-gray-200 animate-pulse rounded-lg" />
+          <div className="h-96 bg-gray-200 animate-pulse rounded-lg" />
+        </div>
+      </div>
+    )
+  }
+)
 
 interface HeroContent {
   brideName?: string
@@ -74,7 +96,8 @@ interface TemplatePreviewProps {
   gallerySettings?: GallerySettings
   userTier?: 'free' | 'silver' | 'gold' | 'platinum'
   projectId?: string
-  rsvpConfig?: RSVPConfig  // Added this line
+  rsvpConfig?: RSVPConfig
+  venueLocation?: VenueLocation | null  // Added this line
 }
 
 // File: src/components/editor/TemplatePreview.tsx - Part 2
@@ -299,7 +322,8 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
   gallerySettings,
   userTier = 'free',
   projectId,
-  rsvpConfig  // Added this parameter
+  rsvpConfig,
+  venueLocation  // Added this parameter
 }) => {
   
   // Helper function to check if RSVP should be shown
@@ -412,6 +436,20 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
               ))}
             </div>
           </div>
+        </section>
+      )}
+
+      {/* Venue Location Section */}
+      {venueLocation && (
+        <section className="w-full py-16 bg-white border-b">
+          <WeddingMapLocation
+            venue={venueLocation}
+            primaryColor={styles.primaryColor}
+            secondaryColor={styles.secondaryColor}
+            fontFamily={styles.fontFamily}
+            brideName={content.hero?.brideName}
+            groomName={content.hero?.groomName}
+          />
         </section>
       )}
 
