@@ -166,6 +166,8 @@ export function WeddingWishes({
   // Submit wish using API
   const submitWish = async () => {
     console.log('Submitting wish:', formData)
+    console.log('Message with spaces:', JSON.stringify(formData.message))
+    console.log('Message length:', formData.message.length)
     
     // Validation
     if (!formData.guestName.trim() || !formData.message.trim()) {
@@ -362,9 +364,31 @@ export function WeddingWishes({
                     </label>
                     <Input
                       value={formData.guestName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, guestName: e.target.value }))}
+                      onChange={(e) => {
+                        console.log('Wishes Name onChange:', JSON.stringify(e.target.value))
+                        setFormData(prev => ({ ...prev, guestName: e.target.value }))
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === ' ') {
+                          console.log('Space key pressed in wishes name')
+                          e.preventDefault()
+                          const input = e.target
+                          const start = input.selectionStart
+                          const end = input.selectionEnd
+                          const newValue = formData.guestName.substring(0, start) + ' ' + formData.guestName.substring(end)
+                          setFormData(prev => ({ ...prev, guestName: newValue }))
+                          setTimeout(() => {
+                            input.setSelectionRange(start + 1, start + 1)
+                          }, 0)
+                        }
+                      }}
                       placeholder="Enter your name"
                       maxLength={100}
+                      style={{ whiteSpace: 'pre-wrap' }}
+                      spellCheck={false}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
                     />
                   </div>
                   {config.require_email && (
@@ -375,9 +399,31 @@ export function WeddingWishes({
                       <Input
                         type="email"
                         value={formData.guestEmail}
-                        onChange={(e) => setFormData(prev => ({ ...prev, guestEmail: e.target.value }))}
+                        onChange={(e) => {
+                          console.log('Wishes Email onChange:', JSON.stringify(e.target.value))
+                          setFormData(prev => ({ ...prev, guestEmail: e.target.value }))
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ') {
+                            console.log('Space key pressed in wishes email')
+                            e.preventDefault()
+                            const input = e.target
+                            const start = input.selectionStart
+                            const end = input.selectionEnd
+                            const newValue = formData.guestEmail.substring(0, start) + ' ' + formData.guestEmail.substring(end)
+                            setFormData(prev => ({ ...prev, guestEmail: newValue }))
+                            setTimeout(() => {
+                              input.setSelectionRange(start + 1, start + 1)
+                            }, 0)
+                          }
+                        }}
                         placeholder="your@email.com"
                         leftIcon={<Mail className="h-4 w-4" />}
+                        style={{ whiteSpace: 'pre-wrap' }}
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
                       />
                     </div>
                   )}
@@ -389,10 +435,42 @@ export function WeddingWishes({
                   </label>
                   <Textarea
                     value={formData.message}
-                    onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                    onChange={(e) => {
+                      console.log('Wishes Message onChange:', JSON.stringify(e.target.value))
+                      console.log('Wishes Message length:', e.target.value.length)
+                      setFormData(prev => ({ ...prev, message: e.target.value }))
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ') {
+                        console.log('Space key pressed in wishes message')
+                        console.log('Current cursor position:', e.target.selectionStart)
+                        e.preventDefault()
+                        const textarea = e.target
+                        const start = textarea.selectionStart
+                        const end = textarea.selectionEnd
+                        const newValue = formData.message.substring(0, start) + ' ' + formData.message.substring(end)
+                        setFormData(prev => ({ ...prev, message: newValue }))
+                        setTimeout(() => {
+                          textarea.setSelectionRange(start + 1, start + 1)
+                        }, 0)
+                      }
+                    }}
+                    onInput={(e) => {
+                      console.log('Wishes Message onInput:', JSON.stringify(e.target.value))
+                    }}
                     placeholder={`Share your wishes for ${brideName} & ${groomName}...`}
                     rows={4}
                     maxLength={config.max_message_length}
+                    style={{
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word',
+                      resize: 'vertical',
+                      fontFamily: 'inherit'
+                    }}
+                    spellCheck={false}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
                   />
                   <div className="text-right text-xs text-gray-500 mt-1">
                     {formData.message.length}/{config.max_message_length}
@@ -483,7 +561,7 @@ export function WeddingWishes({
                             />
                           )}
                         </div>
-                        <p className="text-gray-700 mb-3 leading-relaxed">
+                        <p className="text-gray-700 mb-3 leading-relaxed whitespace-pre-wrap">
                           {wish.message}
                         </p>
                         <p className="text-xs text-gray-500">

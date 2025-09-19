@@ -6,20 +6,23 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { 
-  Search, 
-  Filter, 
-  Eye, 
-  ArrowRight, 
+import {
+  Search,
+  Filter,
+  Eye,
+  ArrowRight,
   Star,
   Crown,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import type { Template, UserProfile, User } from '@/types'
 
 // Simple loading component
@@ -140,6 +143,12 @@ export default function TemplatesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [creatingProject, setCreatingProject] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
+  const [projectTitle, setProjectTitle] = useState('')
+  const [projectSubdomain, setProjectSubdomain] = useState('')
+  const [titleError, setTitleError] = useState('')
+  const [subdomainError, setSubdomainError] = useState('')
 
   const categories = [
     { id: 'all', name: 'All Templates', icon: '🎨' },
@@ -246,23 +255,16 @@ export default function TemplatesPage() {
     setFilteredTemplates(filtered)
   }, [templates, selectedCategory, searchQuery, userProfile])
 
-  const createProject = async (template: Template) => {
+  const createProject = async (template: Template, title: string, subdomain: string) => {
     if (!user || !userProfile) return null
 
     try {
-      // Generate subdomain
-      const subdomain = `${template.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .substring(0, 30)}-${Date.now()}`
-
       const { data, error } = await supabase
         .from('wedding_projects')
         .insert([
           {
             user_id: user.id,
-            title: `My ${template.name} Wedding`,
+            title: title,
             template_id: template.id,
             subdomain: subdomain,
             subscription_tier: userProfile.current_subscription || 'free',
@@ -282,29 +284,23 @@ export default function TemplatesPage() {
     }
   }
 
-  const handleCreateProject = async (template: Template) => {
-    if (!user) {
-      router.push('/auth/login')
+  const handleCreateProject = async () => {
+    if (!selectedTemplate) return
+
+    const isTitleValid = validateTitle(projectTitle)
+    const isSubdomainValid = validateSubdomain(projectSubdomain)
+
+    if (!isTitleValid || !isSubdomainValid) {
       return
     }
 
-    if (!userProfile) {
-      console.error('User profile not loaded')
-      return
-    }
-
-    // Check if user can access this template tier
-    if (!canAccessFeature(userProfile.current_subscription, template.tier_required)) {
-      router.push('/dashboard/settings?upgrade=true')
-      return
-    }
-
-    setCreatingProject(template.id)
+    setCreatingProject(selectedTemplate.id)
 
     try {
-      const project = await createProject(template)
+      const project = await createProject(selectedTemplate, projectTitle, projectSubdomain)
 
       if (project) {
+        closeModal()
         router.push(`/editor/${project.id}`)
       }
     } catch (error) {
@@ -326,6 +322,73 @@ export default function TemplatesPage() {
   const canUserAccessTemplate = (template: Template) => {
     if (!userProfile) return template.tier_required === 'free'
     return canAccessFeature(userProfile.current_subscription, template.tier_required)
+  }
+
+  const validateTitle = (title: string) => {
+    if (!title.trim()) {
+      setTitleError('Title is required')
+      return false
+    }
+    if (title.length > 255) {
+      setTitleError('Title must be 255 characters or less')
+      return false
+    }
+    setTitleError('')
+    return true
+  }
+
+  const validateSubdomain = (subdomain: string) => {
+    if (!subdomain.trim()) {
+      setSubdomainError('Subdomain is required')
+      return false
+    }
+    if (subdomain.length > 100) {
+      setSubdomainError('Subdomain must be 100 characters or less')
+      return false
+    }
+    if (!/^[a-z0-9-]+$/.test(subdomain)) {
+      setSubdomainError('Subdomain can only contain lowercase letters, numbers, and hyphens')
+      return false
+    }
+    if (subdomain.startsWith('-') || subdomain.endsWith('-')) {
+      setSubdomainError('Subdomain cannot start or end with a hyphen')
+      return false
+    }
+    setSubdomainError('')
+    return true
+  }
+
+  const openModal = (template: Template) => {
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
+
+    if (!userProfile) {
+      console.error('User or profile not loaded')
+      return
+    }
+
+    if (!canAccessFeature(userProfile.current_subscription, template.tier_required)) {
+      router.push('/dashboard/settings?upgrade=true')
+      return
+    }
+
+    setSelectedTemplate(template)
+    setProjectTitle(`My ${template.name} Wedding`)
+    setProjectSubdomain(`${template.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').substring(0, 30)}-${Date.now()}`)
+    setTitleError('')
+    setSubdomainError('')
+    setShowModal(true)
+  }
+
+  const closeModal = () => {
+    setShowModal(false)
+    setSelectedTemplate(null)
+    setProjectTitle('')
+    setProjectSubdomain('')
+    setTitleError('')
+    setSubdomainError('')
   }
 
   if (loading) {
@@ -350,13 +413,11 @@ export default function TemplatesPage() {
                   Select from our collection of beautiful, professionally designed wedding templates
                 </p>
               </div>
-              {user && (
-                <Button variant="outline" asChild>
-                  <Link href="/dashboard">
-                    Back to Dashboard
-                  </Link>
-                </Button>
-              )}
+              <Button variant="outline" asChild>
+                <Link href="/dashboard">
+                  Back to Dashboard
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -478,7 +539,7 @@ export default function TemplatesPage() {
                               </div>
                               
                               <Button
-                                onClick={() => handleCreateProject(template)}
+                                onClick={() => openModal(template)}
                                 disabled={isCreating}
                                 size="sm"
                                 className="bg-green-600 hover:bg-green-700"
@@ -608,6 +669,123 @@ export default function TemplatesPage() {
           </div>
         )}
       </div>
+
+      {/* Project Creation Modal */}
+      {showModal && selectedTemplate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Create New Project</h2>
+                  <p className="text-sm text-gray-600 mt-1">Using template: {selectedTemplate.name}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={closeModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Form */}
+              <div className="space-y-4">
+                {/* Project Title */}
+                <div>
+                  <Label htmlFor="projectTitle" className="text-sm font-medium text-gray-700">
+                    Project Title *
+                  </Label>
+                  <Input
+                    id="projectTitle"
+                    value={projectTitle}
+                    onChange={(e) => {
+                      setProjectTitle(e.target.value)
+                      if (titleError) validateTitle(e.target.value)
+                    }}
+                    placeholder="My Beautiful Wedding"
+                    className={`mt-1 ${titleError ? 'border-red-500' : ''}`}
+                    maxLength={255}
+                  />
+                  <div className="flex items-center justify-between mt-1">
+                    {titleError && (
+                      <p className="text-sm text-red-600">{titleError}</p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">
+                      {projectTitle.length}/255 characters
+                    </p>
+                  </div>
+                </div>
+
+                {/* Subdomain */}
+                <div>
+                  <Label htmlFor="projectSubdomain" className="text-sm font-medium text-gray-700">
+                    Subdomain *
+                  </Label>
+                  <div className="mt-1 flex rounded-md shadow-sm">
+                    <Input
+                      id="projectSubdomain"
+                      value={projectSubdomain}
+                      onChange={(e) => {
+                        const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')
+                        setProjectSubdomain(value)
+                        if (subdomainError) validateSubdomain(value)
+                      }}
+                      placeholder="my-beautiful-wedding"
+                      className={`${subdomainError ? 'border-red-500' : ''}`}
+                      maxLength={100}
+                    />
+                    <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                      .einvite.com
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    {subdomainError && (
+                      <p className="text-sm text-red-600">{subdomainError}</p>
+                    )}
+                    <p className="text-xs text-gray-500 ml-auto">
+                      {projectSubdomain.length}/100 characters
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Only lowercase letters, numbers, and hyphens allowed
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={closeModal}
+                  disabled={creatingProject === selectedTemplate.id}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateProject}
+                  disabled={creatingProject === selectedTemplate.id}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {creatingProject === selectedTemplate.id ? (
+                    <>
+                      <SimpleLoading size="sm" />
+                      <span className="ml-2">Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      Create Project
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -38,6 +38,8 @@ interface RSVPFormProps {
   projectId: string;
   supabase: SupabaseClient;
   onSubmitSuccess?: () => void;
+  primaryColor?: string;
+  secondaryColor?: string;
 }
 
 interface ApiResponse {
@@ -52,7 +54,13 @@ interface ApiResponse {
   error?: string;
 }
 
-const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSuccess }) => {
+const RSVPForm: React.FC<RSVPFormProps> = ({ 
+  projectId, 
+  supabase, 
+  onSubmitSuccess,
+  primaryColor = '#2563eb',
+  secondaryColor = '#7c3aed'
+}) => {
   const [config, setConfig] = useState<RSVPConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<RSVPFormData>({
@@ -263,7 +271,10 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
             <h2 className="text-3xl font-bold text-gray-800 mb-2">{config.title}</h2>
             <p className="text-gray-600 leading-relaxed">{config.subtitle}</p>
             {config.deadlineDate && (
-              <p className="text-sm text-purple-600 mt-2">
+              <p 
+                className="text-sm mt-2 font-medium"
+                style={{ color: secondaryColor }}
+              >
                 Please respond by {formatDate(config.deadlineDate)}
               </p>
             )}
@@ -336,9 +347,31 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
                   type="text"
                   required
                   value={formData.guestName}
-                  onChange={(e) => handleInputChange('guestName', e.target.value)}
+                  onChange={(e) => {
+                    console.log('RSVP Guest Name onChange:', JSON.stringify(e.target.value))
+                    handleInputChange('guestName', e.target.value)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ') {
+                      console.log('Space key pressed in guest name')
+                      e.preventDefault()
+                      const input = e.target
+                      const start = input.selectionStart
+                      const end = input.selectionEnd
+                      const newValue = formData.guestName.substring(0, start) + ' ' + formData.guestName.substring(end)
+                      handleInputChange('guestName', newValue)
+                      setTimeout(() => {
+                        input.setSelectionRange(start + 1, start + 1)
+                      }, 0)
+                    }
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  style={{ whiteSpace: 'pre-wrap' }}
                   placeholder="John & Jane Smith"
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
                 />
               </div>
               <div>
@@ -365,9 +398,31 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
                 <input
                   type="email"
                   value={formData.guestEmail}
-                  onChange={(e) => handleInputChange('guestEmail', e.target.value)}
+                  onChange={(e) => {
+                    console.log('RSVP Email onChange:', JSON.stringify(e.target.value))
+                    handleInputChange('guestEmail', e.target.value)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ') {
+                      console.log('Space key pressed in email')
+                      e.preventDefault()
+                      const input = e.target
+                      const start = input.selectionStart
+                      const end = input.selectionEnd
+                      const newValue = formData.guestEmail.substring(0, start) + ' ' + formData.guestEmail.substring(end)
+                      handleInputChange('guestEmail', newValue)
+                      setTimeout(() => {
+                        input.setSelectionRange(start + 1, start + 1)
+                      }, 0)
+                    }
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  style={{ whiteSpace: 'pre-wrap' }}
                   placeholder="john@example.com"
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
                 />
               </div>
               <div>
@@ -377,9 +432,31 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
                 <input
                   type="tel"
                   value={formData.guestPhone}
-                  onChange={(e) => handleInputChange('guestPhone', e.target.value)}
+                  onChange={(e) => {
+                    console.log('RSVP Phone onChange:', JSON.stringify(e.target.value))
+                    handleInputChange('guestPhone', e.target.value)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ') {
+                      console.log('Space key pressed in phone')
+                      e.preventDefault()
+                      const input = e.target
+                      const start = input.selectionStart
+                      const end = input.selectionEnd
+                      const newValue = formData.guestPhone.substring(0, start) + ' ' + formData.guestPhone.substring(end)
+                      handleInputChange('guestPhone', newValue)
+                      setTimeout(() => {
+                        input.setSelectionRange(start + 1, start + 1)
+                      }, 0)
+                    }
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  style={{ whiteSpace: 'pre-wrap' }}
                   placeholder="+91 9876543210"
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
                 />
               </div>
             </div>
@@ -393,9 +470,31 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
               <input
                 type="text"
                 value={formData.dietaryRestrictions}
-                onChange={(e) => handleInputChange('dietaryRestrictions', e.target.value)}
+                onChange={(e) => {
+                  console.log('RSVP Dietary onChange:', JSON.stringify(e.target.value))
+                  handleInputChange('dietaryRestrictions', e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === ' ') {
+                    console.log('Space key pressed in dietary restrictions')
+                    e.preventDefault()
+                    const input = e.target
+                    const start = input.selectionStart
+                    const end = input.selectionEnd
+                    const newValue = formData.dietaryRestrictions.substring(0, start) + ' ' + formData.dietaryRestrictions.substring(end)
+                    handleInputChange('dietaryRestrictions', newValue)
+                    setTimeout(() => {
+                      input.setSelectionRange(start + 1, start + 1)
+                    }, 0)
+                  }
+                }}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                style={{ whiteSpace: 'pre-wrap' }}
                 placeholder="Vegetarian, vegan, gluten-free, allergies, etc."
+                spellCheck={false}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
               />
             </div>
 
@@ -416,9 +515,31 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
                       <input
                         type="text"
                         value={formData.danceSong}
-                        onChange={(e) => handleInputChange('danceSong', e.target.value)}
+                        onChange={(e) => {
+                          console.log('RSVP Dance Song onChange:', JSON.stringify(e.target.value))
+                          handleInputChange('danceSong', e.target.value)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ') {
+                            console.log('Space key pressed in dance song')
+                            e.preventDefault()
+                            const input = e.target
+                            const start = input.selectionStart
+                            const end = input.selectionEnd
+                            const newValue = formData.danceSong.substring(0, start) + ' ' + formData.danceSong.substring(end)
+                            handleInputChange('danceSong', newValue)
+                            setTimeout(() => {
+                              input.setSelectionRange(start + 1, start + 1)
+                            }, 0)
+                          }
+                        }}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        style={{ whiteSpace: 'pre-wrap' }}
                         placeholder="Your favorite party song..."
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
                       />
                     </div>
                   )}
@@ -431,10 +552,44 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
                       </label>
                       <textarea
                         value={formData.adviceNewlyweds}
-                        onChange={(e) => handleInputChange('adviceNewlyweds', e.target.value)}
+                        onChange={(e) => {
+                          console.log('RSVP Advice onChange:', JSON.stringify(e.target.value))
+                          console.log('RSVP Advice length:', e.target.value.length)
+                          handleInputChange('adviceNewlyweds', e.target.value)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ') {
+                            console.log('Space key pressed in RSVP advice')
+                            console.log('Current cursor position:', e.target.selectionStart)
+                            // Force prevent default handling and manually add space
+                            e.preventDefault()
+                            const textarea = e.target
+                            const start = textarea.selectionStart
+                            const end = textarea.selectionEnd
+                            const newValue = formData.adviceNewlyweds.substring(0, start) + ' ' + formData.adviceNewlyweds.substring(end)
+                            handleInputChange('adviceNewlyweds', newValue)
+                            // Restore cursor position
+                            setTimeout(() => {
+                              textarea.setSelectionRange(start + 1, start + 1)
+                            }, 0)
+                          }
+                        }}
+                        onInput={(e) => {
+                          console.log('RSVP Advice onInput:', JSON.stringify(e.target.value))
+                        }}
                         rows={3}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        style={{
+                          whiteSpace: 'pre-wrap',
+                          wordWrap: 'break-word',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
                         placeholder="Share your wisdom..."
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
                       />
                     </div>
                   )}
@@ -447,10 +602,42 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
                       </label>
                       <textarea
                         value={formData.favoriteMemory}
-                        onChange={(e) => handleInputChange('favoriteMemory', e.target.value)}
+                        onChange={(e) => {
+                          console.log('RSVP Memory onChange:', JSON.stringify(e.target.value))
+                          console.log('RSVP Memory length:', e.target.value.length)
+                          handleInputChange('favoriteMemory', e.target.value)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ') {
+                            console.log('Space key pressed in RSVP memory')
+                            console.log('Current cursor position:', e.target.selectionStart)
+                            e.preventDefault()
+                            const textarea = e.target
+                            const start = textarea.selectionStart
+                            const end = textarea.selectionEnd
+                            const newValue = formData.favoriteMemory.substring(0, start) + ' ' + formData.favoriteMemory.substring(end)
+                            handleInputChange('favoriteMemory', newValue)
+                            setTimeout(() => {
+                              textarea.setSelectionRange(start + 1, start + 1)
+                            }, 0)
+                          }
+                        }}
+                        onInput={(e) => {
+                          console.log('RSVP Memory onInput:', JSON.stringify(e.target.value))
+                        }}
                         rows={3}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        style={{
+                          whiteSpace: 'pre-wrap',
+                          wordWrap: 'break-word',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
                         placeholder="Tell us about a special moment..."
+                        spellCheck={false}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
                       />
                     </div>
                   )}
@@ -463,7 +650,21 @@ const RSVPForm: React.FC<RSVPFormProps> = ({ projectId, supabase, onSubmitSucces
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-2 px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
+                className="inline-flex items-center gap-2 px-8 py-3 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-lg"
+                style={{ 
+                  backgroundColor: primaryColor,
+                  borderColor: primaryColor
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSubmitting) {
+                    e.currentTarget.style.backgroundColor = secondaryColor;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSubmitting) {
+                    e.currentTarget.style.backgroundColor = primaryColor;
+                  }
+                }}
               >
                 {isSubmitting ? (
                   <Loader className="w-5 h-5 animate-spin" />

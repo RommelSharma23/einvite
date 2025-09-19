@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { Images, X, ChevronLeft, ChevronRight, Share2 } from 'lucide-react'
+import { getStyleById } from '@/lib/galleryConfig'
 
 interface GalleryImage {
   id: string
@@ -22,6 +23,7 @@ interface WeddingGalleryProps {
   fontFamily: string
   brideName?: string
   groomName?: string
+  galleryStyle?: string
 }
 
 export function WeddingGallery({
@@ -30,8 +32,45 @@ export function WeddingGallery({
   secondaryColor,
   fontFamily,
   brideName = 'Bride',
-  groomName = 'Groom'
+  groomName = 'Groom',
+  galleryStyle = 'grid'
 }: WeddingGalleryProps) {
+  // Get the gallery style configuration
+  const galleryStyleConfig = getStyleById(galleryStyle)
+  
+  // Temporary test: force slideshow when any non-grid style is selected
+  if (galleryStyle === 'single-carousel' || galleryStyle === 'slideshow') {
+    // Import and use SingleCarouselGallery directly
+    const { SingleCarouselGallery } = require('@/components/wedding/gallery-styles/SingleCarouselGallery')
+    return (
+      <SingleCarouselGallery 
+        images={images}
+        primaryColor={primaryColor}
+        secondaryColor={secondaryColor}
+        fontFamily={fontFamily}
+        brideName={brideName}
+        groomName={groomName}
+      />
+    )
+  }
+  
+  // If a specific gallery style is configured and available, use it
+  if (galleryStyleConfig && galleryStyle !== 'grid') {
+    const GalleryComponent = galleryStyleConfig.component
+    const galleryProps = {
+      images,
+      primaryColor,
+      secondaryColor,
+      fontFamily,
+      brideName,
+      groomName,
+      ...galleryStyleConfig.props
+    }
+    
+    return <GalleryComponent {...galleryProps} />
+  }
+  
+  // Default grid gallery implementation
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null)
   const [modalImageIndex, setModalImageIndex] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')

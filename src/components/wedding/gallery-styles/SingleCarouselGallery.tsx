@@ -154,9 +154,9 @@ export function SingleCarouselGallery({
 
   return (
     <>
-      <div className="relative bg-white rounded-xl shadow-lg overflow-hidden">
+      <div className="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-3xl mx-auto">
         {/* Main Image Container */}
-        <div className="relative aspect-[4/3] bg-gray-100">
+        <div className="relative aspect-[16/9] bg-gray-100">
           <Image
             src={currentImage.file_url}
             alt={currentImage.caption || `Wedding photo ${currentImageIndex + 1}`}
@@ -279,13 +279,13 @@ export function SingleCarouselGallery({
         </div>
 
         {/* Thumbnail Strip (Optional for larger screens) */}
-        <div className="hidden md:block p-4 bg-gray-50">
-          <div className="flex space-x-3 overflow-x-auto scrollbar-hide">
+        <div className="hidden md:block p-3 bg-gray-50">
+          <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
             {images.slice(0, 10).map((image, index) => (
               <button
                 key={image.id}
                 onClick={() => goToSlide(index)}
-                className={`relative flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden transition-all duration-200 ${
+                className={`relative flex-shrink-0 w-12 h-8 rounded-lg overflow-hidden transition-all duration-200 ${
                   index === currentImageIndex
                     ? 'ring-2 ring-offset-2 scale-105'
                     : 'hover:scale-105 opacity-70 hover:opacity-100'
@@ -299,12 +299,12 @@ export function SingleCarouselGallery({
                   alt={`Thumbnail ${index + 1}`}
                   fill
                   className="object-cover"
-                  sizes="64px"
+                  sizes="48px"
                 />
               </button>
             ))}
             {images.length > 10 && (
-              <div className="flex-shrink-0 w-16 h-12 bg-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-500 font-medium">
+              <div className="flex-shrink-0 w-12 h-8 bg-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-500 font-medium">
                 +{images.length - 10}
               </div>
             )}

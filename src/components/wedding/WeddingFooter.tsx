@@ -87,33 +87,6 @@ export function WeddingFooter({
           </div>
         </div>
 
-        {/* Social Media Links - Single Line */}
-        <div className="mb-4">
-          <p className="text-white/50 text-xs mb-2">
-            Follow our journey on social media
-          </p>
-          <div className="flex justify-center space-x-4">
-            <button 
-              className="text-white/40 hover:text-white/70 transition-colors text-xs"
-              onClick={() => {
-                // Handle Instagram link
-                window.open('#', '_blank')
-              }}
-            >
-              Instagram
-            </button>
-            <span className="text-white/30">•</span>
-            <button 
-              className="text-white/40 hover:text-white/70 transition-colors text-xs"
-              onClick={() => {
-                // Handle Facebook link
-                window.open('#', '_blank')
-              }}
-            >
-              Facebook
-            </button>
-          </div>
-        </div>
 
         {/* Copyright - Single Line */}
         <div className="pt-3 border-t border-white/10">

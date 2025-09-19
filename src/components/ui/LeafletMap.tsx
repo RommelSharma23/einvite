@@ -73,13 +73,22 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     // Import Leaflet and set up default icon
     if (typeof window !== 'undefined') {
       import('leaflet').then((L) => {
-        // Fix for default marker icons in webpack
-        delete (L.Icon.Default.prototype as any)._getIconUrl
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-        })
+        try {
+          // Fix for default marker icons in webpack
+          delete (L.Icon.Default.prototype as any)._getIconUrl
+          L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          })
+          setLeafletLoaded(true)
+        } catch (error) {
+          console.error('Leaflet initialization error:', error)
+          // Set loaded to true anyway to prevent infinite loading
+          setLeafletLoaded(true)
+        }
+      }).catch((error) => {
+        console.error('Failed to load Leaflet:', error)
         setLeafletLoaded(true)
       })
     }
@@ -103,41 +112,61 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
     }
   }
 
-  return (
-    <div className={`rounded-lg overflow-hidden border ${className}`} style={{ height }}>
-      <DynamicMapContainer
-        center={center}
-        zoom={zoom}
-        scrollWheelZoom={true}
-        style={{ height: '100%', width: '100%' }}
-        eventHandlers={{
-          click: handleMapClick
-        }}
+  try {
+    return (
+      <div className={`rounded-lg overflow-hidden border ${className}`} style={{ height }}>
+        <DynamicMapContainer
+          center={center}
+          zoom={zoom}
+          scrollWheelZoom={true}
+          style={{ height: '100%', width: '100%' }}
+          eventHandlers={{
+            click: handleMapClick
+          }}
+        >
+          <DynamicTileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
+          {markers.map((marker, index) => (
+            <DynamicMarker
+              key={index}
+              position={marker.position}
+              draggable={marker.draggable}
+              eventHandlers={marker.draggable ? {
+                dragend: handleMarkerDragEnd(index)
+              } : {}}
+            >
+              {marker.popup && (
+                <DynamicPopup>{marker.popup}</DynamicPopup>
+              )}
+            </DynamicMarker>
+          ))}
+          
+          {children}
+        </DynamicMapContainer>
+      </div>
+    )
+  } catch (error) {
+    console.error('LeafletMap render error:', error)
+    return (
+      <div 
+        className={`rounded-lg overflow-hidden border bg-gray-100 flex items-center justify-center ${className}`} 
+        style={{ height }}
       >
-        <DynamicTileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        
-        {markers.map((marker, index) => (
-          <DynamicMarker
-            key={index}
-            position={marker.position}
-            draggable={marker.draggable}
-            eventHandlers={marker.draggable ? {
-              dragend: handleMarkerDragEnd(index)
-            } : {}}
+        <div className="text-center text-gray-600">
+          <p className="text-sm">Map temporarily unavailable</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
           >
-            {marker.popup && (
-              <DynamicPopup>{marker.popup}</DynamicPopup>
-            )}
-          </DynamicMarker>
-        ))}
-        
-        {children}
-      </DynamicMapContainer>
-    </div>
-  )
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    )
+  }
 }
 
 export default LeafletMap

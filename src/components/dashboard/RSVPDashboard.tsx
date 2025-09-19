@@ -10,23 +10,25 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Users, 
-  Calendar, 
-  Search, 
-  Mail, 
-  Phone, 
-  Utensils, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  Users,
+  Calendar,
+  Search,
+  Mail,
+  Phone,
+  Utensils,
+  CheckCircle,
+  XCircle,
+  Clock,
   Eye,
   TrendingUp,
   UserCheck,
   UserX,
   RefreshCw,
   Crown,
-  Lock
+  Lock,
+  Download,
+  BarChart3
 } from 'lucide-react'
 
 type SupabaseClient = ReturnType<typeof createClient<Database>>
@@ -232,6 +234,48 @@ export default function RSVPDashboard({
     }
   }
 
+  // Export responses to CSV
+  const exportToCSV = () => {
+    if (responses.length === 0) return
+
+    const headers = [
+      'Guest Name',
+      'Email',
+      'Phone',
+      'Status',
+      'Guest Count',
+      'Dietary Restrictions',
+      'Message',
+      'Submitted Date'
+    ]
+
+    const csvContent = [
+      headers.join(','),
+      ...responses.map(response => [
+        `"${response.guest_name}"`,
+        `"${response.guest_email || ''}"`,
+        `"${response.guest_phone || ''}"`,
+        `"${response.attendance_status.replace('_', ' ')}"`,
+        response.guest_count,
+        `"${response.dietary_restrictions || ''}"`,
+        `"${response.message || ''}"`,
+        `"${formatDate(response.submitted_at)}"`
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `${brideName}-${groomName}-RSVP-Responses.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -330,15 +374,27 @@ export default function RSVPDashboard({
                Manage responses for {brideName} & {groomName}&apos;s wedding
               </p>
             </div>
-            <Button
-              onClick={loadResponses}
-              variant="outline"
-              size="sm"
-              disabled={loading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                onClick={exportToCSV}
+                variant="outline"
+                size="sm"
+                disabled={responses.length === 0}
+                title="Export RSVP responses as CSV"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button
+                onClick={loadResponses}
+                variant="outline"
+                size="sm"
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -435,12 +491,40 @@ export default function RSVPDashboard({
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="responses">All Responses ({responses.length})</TabsTrigger>
+            <TabsTrigger value="grid">Grid View ({responses.length})</TabsTrigger>
+            <TabsTrigger value="responses">Detailed View ({responses.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* Summary Banner */}
+            {responses.length > 0 && (
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Wedding Planning Summary
+                      </h3>
+                      <p className="text-gray-700">
+                        <strong>{stats.attending}</strong> guests confirmed attending •
+                        <strong className="ml-2">{stats.totalGuests}</strong> total expected guests •
+                        <strong className="ml-2">{stats.responseRate.toFixed(1)}%</strong> response rate
+                      </p>
+                    </div>
+                    <BarChart3 className="h-12 w-12 text-blue-500" />
+                  </div>
+                  {stats.withDietaryRestrictions > 0 && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      <Utensils className="h-4 w-4 inline mr-1" />
+                      {stats.withDietaryRestrictions} guest{stats.withDietaryRestrictions !== 1 ? 's have' : ' has'} dietary restrictions to consider
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Quick Insights */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
@@ -505,6 +589,124 @@ export default function RSVPDashboard({
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="grid" className="space-y-6">
+            {/* Search and Filter */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Search by name, email, or phone..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="attending">Attending</option>
+                      <option value="not_attending">Not Attending</option>
+                      <option value="maybe">Maybe</option>
+                    </select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Grid View */}
+            {filteredResponses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredResponses.map((response) => (
+                  <Card key={response.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium text-gray-900 truncate text-sm">
+                            {response.guest_name}
+                          </h3>
+                          <div className={`p-1 rounded-full ${getStatusColor(response.attendance_status)}`}>
+                            {getStatusIcon(response.attendance_status)}
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <Badge className={`${getStatusColor(response.attendance_status)} text-xs w-full justify-center`}>
+                          {response.attendance_status === 'attending' ? 'Attending' :
+                           response.attendance_status === 'not_attending' ? 'Not Attending' : 'Maybe'}
+                        </Badge>
+
+                        {/* Guest Count */}
+                        <div className="flex items-center justify-center space-x-1 text-sm text-gray-600">
+                          <Users className="h-4 w-4" />
+                          <span>{response.guest_count} guest{response.guest_count !== 1 ? 's' : ''}</span>
+                        </div>
+
+                        {/* Contact Info */}
+                        <div className="space-y-1 text-xs text-gray-500">
+                          {response.guest_email && (
+                            <div className="flex items-center space-x-1 truncate">
+                              <Mail className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">{response.guest_email}</span>
+                            </div>
+                          )}
+                          {response.guest_phone && (
+                            <div className="flex items-center space-x-1">
+                              <Phone className="h-3 w-3 flex-shrink-0" />
+                              <span>{response.guest_phone}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Dietary & Message Indicators */}
+                        <div className="flex justify-center space-x-2">
+                          {response.dietary_restrictions && (
+                            <div className="p-1 bg-orange-100 rounded" title="Has dietary restrictions">
+                              <Utensils className="h-3 w-3 text-orange-600" />
+                            </div>
+                          )}
+                          {response.message && (
+                            <div className="p-1 bg-blue-100 rounded" title="Left a message">
+                              <Eye className="h-3 w-3 text-blue-600" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Date */}
+                        <div className="text-xs text-gray-400 text-center">
+                          {formatDate(response.submitted_at)}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-12">
+                  <div className="text-center">
+                    <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No responses found</h3>
+                    <p className="text-gray-600">
+                      {searchTerm || filterStatus !== 'all'
+                        ? 'Try adjusting your search or filter criteria'
+                        : 'RSVP responses will appear here once guests start responding'
+                      }
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="responses" className="space-y-6">

@@ -18,21 +18,46 @@ interface CoupleContent {
   groomInfo?: PersonInfo
 }
 
+interface GalleryImage {
+  id: string
+  file_url: string
+  gallery_category?: string
+  section_type?: string
+}
+
 interface WeddingCoupleProps {
   couple: CoupleContent
   primaryColor: string
   secondaryColor: string
   fontFamily: string
+  galleryImages?: GalleryImage[]
 }
 
 export function WeddingCouple({
   couple,
   primaryColor,
   secondaryColor,
-  fontFamily
+  fontFamily,
+  galleryImages = []
 }: WeddingCoupleProps) {
   const brideInfo = couple?.brideInfo || {}
   const groomInfo = couple?.groomInfo || {}
+
+  // Get gallery images for bride and groom
+  const brideGalleryImages = galleryImages.filter(img => 
+    img.gallery_category === 'bride' || 
+    img.section_type === 'gallery_bride' ||
+    img.gallery_category === 'bride_photo'
+  )
+  const groomGalleryImages = galleryImages.filter(img => 
+    img.gallery_category === 'groom' || 
+    img.section_type === 'gallery_groom' ||
+    img.gallery_category === 'groom_photo'
+  )
+
+  // Use provided photo or fallback to first gallery image
+  const bridePhotoUrl = brideInfo.photoUrl || (brideGalleryImages.length > 0 ? brideGalleryImages[0].file_url : null)
+  const groomPhotoUrl = groomInfo.photoUrl || (groomGalleryImages.length > 0 ? groomGalleryImages[0].file_url : null)
 
   return (
     <section 
@@ -55,10 +80,10 @@ export function WeddingCouple({
           <div className="text-center">
             {/* Bride Photo */}
             <div className="mb-6">
-              {brideInfo.photoUrl ? (
+              {bridePhotoUrl ? (
                 <div className="w-48 h-48 md:w-56 md:h-56 rounded-full mx-auto overflow-hidden shadow-lg border-4 border-white relative">
                   <Image
-                    src={brideInfo.photoUrl}
+                    src={bridePhotoUrl}
                     alt={brideInfo.name || 'Bride'}
                     fill
                     className="object-cover"
@@ -109,10 +134,10 @@ export function WeddingCouple({
           <div className="text-center">
             {/* Groom Photo */}
             <div className="mb-6">
-              {groomInfo.photoUrl ? (
+              {groomPhotoUrl ? (
                 <div className="w-48 h-48 md:w-56 md:h-56 rounded-full mx-auto overflow-hidden shadow-lg border-4 border-white relative">
                   <Image
-                    src={groomInfo.photoUrl}
+                    src={groomPhotoUrl}
                     alt={groomInfo.name || 'Groom'}
                     fill
                     className="object-cover"

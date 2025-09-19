@@ -5,26 +5,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { 
-  Type, 
-  Palette,
-  Calendar,
-  Images,
-  MessageCircle,
-  Users,
-  MapPin
+import {
+  Monitor,
+  Smartphone
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ContentEditor } from '@/components/editor/ContentEditor'
-import { StyleEditor } from '@/components/editor/StyleEditor'
 import { TemplatePreview } from '@/components/editor/TemplatePreview'
 import { EditorHeader } from '@/components/editor/EditorHeader'
-import { EventsEditor } from '@/components/editor/EventsEditor'
-import { GalleryEditor } from '@/components/editor/GalleryEditor'
-import { WishesEditor } from '@/components/editor/WishesEditor'
-import RSVPEditor from '@/components/editor/RSVPEditor'
-import { MapLocationEditor, type VenueLocation } from '@/components/editor/MapLocationEditor'
+import { type VenueLocation } from '@/components/editor/MapLocationEditor'
+import { SetupWizard } from '@/components/editor/SetupWizard'
 // REMOVED: DomainEditor import
 import type { WeddingProject } from '@/types'
 
@@ -90,6 +79,27 @@ interface StylesData {
   fontFamily: string
 }
 
+interface ScrollEffectsConfig {
+  enabled: boolean
+  animationType: 'disabled' | 'gentle' | 'normal' | 'energetic'
+  backgroundPattern: 'none' | 'hearts' | 'floral' | 'geometric' | 'dots'
+  parallaxIntensity: number
+  showScrollProgress: boolean
+  showScrollToTop: boolean
+  staggerAnimations: boolean
+  mobileAnimations: 'disabled' | 'reduced' | 'same'
+}
+
+interface SocialLinksConfig {
+  isEnabled: boolean
+  facebookUrl: string
+  instagramUrl: string
+  displayLocation: 'header' | 'footer' | 'section' | 'floating'
+  callToAction: string
+  iconStyle: 'colored' | 'monochrome' | 'outline'
+  iconSize: 'small' | 'medium' | 'large'
+}
+
 interface ContentItem {
   section_type: string
   content_data: Record<string, unknown>
@@ -100,6 +110,30 @@ interface RSVPConfig {
   isEnabled: boolean;
   title: string;
   subtitle: string;
+  deadline?: string;
+  confirmationMessage?: string;
+  danceSongEnabled?: boolean;
+  danceSongQuestion?: string;
+  adviceEnabled?: boolean;
+  adviceQuestion?: string;
+  memoryEnabled?: boolean;
+  memoryQuestion?: string;
+}
+
+// Add Background Music Config interface
+interface BackgroundMusicConfig {
+  id?: string
+  projectId: string
+  fileUrl: string
+  fileName: string
+  fileSize?: number
+  duration?: number
+  isPreset: boolean
+  presetCategory?: string
+  isEnabled: boolean
+  volume: number
+  autoPlay: boolean
+  loopEnabled: boolean
 }
 
 // Extended window interface for global functions
@@ -159,6 +193,29 @@ const getDefaultStyles = (): StylesData => ({
   fontFamily: 'Inter, sans-serif'
 })
 
+// Default scroll effects
+const getDefaultScrollEffects = (): ScrollEffectsConfig => ({
+  enabled: true,
+  animationType: 'normal',
+  backgroundPattern: 'hearts',
+  parallaxIntensity: 30,
+  showScrollProgress: true,
+  showScrollToTop: true,
+  staggerAnimations: true,
+  mobileAnimations: 'reduced'
+})
+
+// Default social links
+const getDefaultSocialLinks = (): SocialLinksConfig => ({
+  isEnabled: false,
+  facebookUrl: '',
+  instagramUrl: '',
+  displayLocation: 'footer',
+  callToAction: 'Follow Us',
+  iconStyle: 'colored',
+  iconSize: 'medium'
+})
+
 export default function EditorPage() {
   const params = useParams()
   const router = useRouter()
@@ -168,21 +225,38 @@ export default function EditorPage() {
   const [project, setProject] = useState<WeddingProject | null>(null)
   const [content, setContent] = useState<ContentData>(getDefaultContent())
   const [styles, setStyles] = useState<StylesData>(getDefaultStyles())
+  const [scrollEffects, setScrollEffects] = useState<ScrollEffectsConfig>(getDefaultScrollEffects())
+  const [socialLinks, setSocialLinks] = useState<SocialLinksConfig>(getDefaultSocialLinks())
   const [events, setEvents] = useState<WeddingEvent[]>([])
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState('content')
+  const [showWizard, setShowWizard] = useState(true)
+  const [wizardMode, setWizardMode] = useState(true)
+
+  // Preview mode state (desktop/mobile toggle)
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
 
   // Add RSVP config state
   const [rsvpConfig, setRsvpConfig] = useState<RSVPConfig>({
     isEnabled: false,
     title: 'RSVP',
-    subtitle: 'Please let us know if you\'ll be joining us for our special day!'
+    subtitle: 'Please let us know if you\'ll be joining us for our special day!',
+    deadline: '',
+    confirmationMessage: 'Thank you for your RSVP! We can\'t wait to celebrate with you.',
+    danceSongEnabled: false,
+    danceSongQuestion: 'What song will definitely get you on the dance floor?',
+    adviceEnabled: false,
+    adviceQuestion: 'Any advice for the newlyweds?',
+    memoryEnabled: false,
+    memoryQuestion: 'What\'s your favorite memory with the couple?'
   })
 
   // Add venue location state
   const [venueLocation, setVenueLocation] = useState<VenueLocation | null>(null)
+
+  // Add background music state
+  const [backgroundMusic, setBackgroundMusic] = useState<BackgroundMusicConfig | null>(null)
 
   // Add subscription tier state
   const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'silver' | 'gold' | 'platinum'>('free')
@@ -205,7 +279,7 @@ export default function EditorPage() {
         .from('media_files')
         .select('*')
         .eq('project_id', projectId)
-        .eq('section_type', 'gallery')
+        .or('section_type.eq.gallery,section_type.like.gallery_%')
         .order('display_order', { ascending: true })
 
       if (error) {
@@ -228,6 +302,36 @@ export default function EditorPage() {
     }
   }, [refreshGalleryImages])
 
+  // Auto-update hero images from gallery (support multiple for slider)
+  useEffect(() => {
+    const heroImages = galleryImages.filter(img => 
+      img.gallery_category === 'hero' || 
+      img.section_type === 'hero' ||
+      img.section_type === 'gallery_hero'
+    ).sort((a, b) => a.display_order - b.display_order)
+    
+    console.log('🖼️ Found hero images:', heroImages.length, heroImages.map(img => img.file_url))
+    
+    // Update content with hero images array
+    const heroImageUrls = heroImages.map(img => img.file_url)
+    const currentHeroUrls = content.hero?.heroImageUrls || []
+    
+    // Check if hero images have changed
+    const hasChanged = JSON.stringify(heroImageUrls) !== JSON.stringify(currentHeroUrls)
+    
+    if (hasChanged) {
+      console.log('✅ Auto-updating hero images from gallery:', heroImageUrls)
+      setContent(prev => ({
+        ...prev,
+        hero: {
+          ...prev.hero,
+          heroImageUrl: heroImageUrls[0], // Keep single URL for backward compatibility
+          heroImageUrls: heroImageUrls
+        }
+      }))
+    }
+  }, [galleryImages, content.hero?.heroImageUrls])
+
   // Load RSVP config when component mounts
   useEffect(() => {
     const loadRSVPConfig = async () => {
@@ -248,7 +352,15 @@ export default function EditorPage() {
           const newConfig = {
             isEnabled: data.is_enabled,
             title: data.title || 'RSVP',
-            subtitle: data.subtitle || 'Please let us know if you\'ll be joining us for our special day!'
+            subtitle: data.subtitle || 'Please let us know if you\'ll be joining us for our special day!',
+            deadline: data.deadline_date || '',
+            confirmationMessage: data.confirmation_message || 'Thank you for your RSVP! We can\'t wait to celebrate with you.',
+            danceSongEnabled: data.dance_song_enabled || false,
+            danceSongQuestion: data.dance_song_question || 'What song will definitely get you on the dance floor?',
+            adviceEnabled: data.advice_enabled || false,
+            adviceQuestion: data.advice_question || 'Any advice for the newlyweds?',
+            memoryEnabled: data.memory_enabled || false,
+            memoryQuestion: data.memory_question || 'What\'s your favorite memory with the couple?'
           };
           console.log('✅ Setting RSVP config:', newConfig);
           setRsvpConfig(newConfig);
@@ -262,6 +374,205 @@ export default function EditorPage() {
 
     loadRSVPConfig();
   }, [projectId]);
+
+  // Function to save RSVP config to database
+  const saveRSVPConfig = async (config: RSVPConfig) => {
+    if (!projectId) {
+      console.error('❌ No projectId available for saving RSVP config');
+      return;
+    }
+
+    try {
+      console.log('💾 Attempting to save RSVP config...');
+      console.log('📋 Project ID:', projectId);
+      console.log('📋 Config:', config);
+
+      const configData = {
+        project_id: projectId,
+        is_enabled: config.isEnabled,
+        title: config.title,
+        subtitle: config.subtitle,
+        deadline_date: config.deadline || null,
+        confirmation_message: config.confirmationMessage,
+        dance_song_enabled: config.danceSongEnabled,
+        dance_song_question: config.danceSongQuestion,
+        advice_enabled: config.adviceEnabled,
+        advice_question: config.adviceQuestion,
+        memory_enabled: config.memoryEnabled,
+        memory_question: config.memoryQuestion,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('📋 Database payload:', configData);
+
+      // Use upsert to handle both insert and update cases
+      const { data, error } = await supabase
+        .from('rsvp_config')
+        .upsert(configData, {
+          onConflict: 'project_id'
+        })
+        .select();
+
+      if (error) {
+        console.error('❌ Database error saving RSVP config:', error);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+
+      console.log('✅ RSVP config saved successfully to database');
+      console.log('✅ Saved data:', data);
+
+    } catch (error) {
+      console.error('💥 Unexpected error saving RSVP config:', error);
+      // Show user-friendly error
+      alert('Failed to save RSVP configuration. Please try again.');
+    }
+  };
+
+  // Function to save scroll effects config to database
+  const saveScrollEffectsConfig = async (config: ScrollEffectsConfig) => {
+    if (!projectId) {
+      console.error('❌ No projectId available for saving scroll effects config');
+      return;
+    }
+
+    try {
+      console.log('💾 Attempting to save scroll effects config...');
+      console.log('📋 Project ID:', projectId);
+      console.log('📋 Config:', config);
+
+      const { error: scrollEffectsError } = await supabase
+        .from('scroll_effects')
+        .upsert({
+          project_id: projectId,
+          enabled: config.enabled,
+          animation_type: config.animationType,
+          background_pattern: config.backgroundPattern,
+          parallax_intensity: config.parallaxIntensity,
+          show_scroll_progress: config.showScrollProgress,
+          show_scroll_to_top: config.showScrollToTop,
+          stagger_animations: config.staggerAnimations,
+          mobile_animations: config.mobileAnimations,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'project_id'
+        });
+
+      if (scrollEffectsError) {
+        console.error('❌ Error saving scroll effects:', scrollEffectsError);
+        throw scrollEffectsError;
+      } else {
+        console.log('✅ Scroll effects saved successfully to database');
+      }
+
+    } catch (error) {
+      console.error('💥 Unexpected error saving scroll effects:', error);
+      // Show user-friendly error
+      alert('Failed to save scroll effects configuration. Please try again.');
+    }
+  };
+
+  // Function to save social links config to database
+  const saveSocialLinksConfig = async (config: SocialLinksConfig) => {
+    if (!projectId) {
+      console.error('❌ No projectId available for saving social links config');
+      return;
+    }
+
+    try {
+      console.log('💾 Attempting to save social links config...');
+      console.log('📋 Project ID:', projectId);
+      console.log('📋 Config:', config);
+
+      const { error: socialLinksError } = await supabase
+        .from('social_links')
+        .upsert({
+          project_id: projectId,
+          is_enabled: config.isEnabled,
+          facebook_url: config.facebookUrl || null,
+          instagram_url: config.instagramUrl || null,
+          display_location: config.displayLocation,
+          call_to_action: config.callToAction,
+          icon_style: config.iconStyle,
+          icon_size: config.iconSize,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'project_id'
+        });
+
+      if (socialLinksError) {
+        console.error('❌ Error saving social links:', socialLinksError);
+        throw socialLinksError;
+      } else {
+        console.log('✅ Social links saved successfully to database');
+      }
+
+    } catch (error) {
+      console.error('💥 Unexpected error saving social links:', error);
+      // Show user-friendly error
+      alert('Failed to save social links configuration. Please try again.');
+    }
+  };
+
+  // Function to save background music config to database
+  const saveBackgroundMusicConfig = async (config: BackgroundMusicConfig | null) => {
+    if (!projectId) {
+      console.error('❌ No projectId available for saving background music config');
+      return;
+    }
+
+    try {
+      console.log('💾 Attempting to save background music config...');
+      console.log('📋 Project ID:', projectId);
+      console.log('📋 Config:', config);
+
+      if (config === null) {
+        // Delete existing background music
+        const { error } = await supabase
+          .from('background_music')
+          .delete()
+          .eq('project_id', projectId);
+
+        if (error) {
+          console.error('❌ Error deleting background music:', error);
+          throw error;
+        } else {
+          console.log('✅ Background music deleted successfully');
+        }
+      } else {
+        // Upsert background music config
+        const { error: musicError } = await supabase
+          .from('background_music')
+          .upsert({
+            project_id: projectId,
+            file_url: config.fileUrl,
+            file_name: config.fileName,
+            file_size: config.fileSize || null,
+            duration: config.duration || null,
+            is_preset: config.isPreset,
+            preset_category: config.presetCategory || null,
+            is_enabled: config.isEnabled,
+            volume: config.volume,
+            auto_play: config.autoPlay,
+            loop_enabled: config.loopEnabled,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'project_id'
+          });
+
+        if (musicError) {
+          console.error('❌ Error saving background music:', musicError);
+          throw musicError;
+        } else {
+          console.log('✅ Background music saved successfully to database');
+        }
+      }
+
+    } catch (error) {
+      console.error('💥 Unexpected error saving background music:', error);
+      alert('Failed to save background music configuration. Please try again.');
+    }
+  };
 
   // Load project subscription tier
   useEffect(() => {
@@ -369,6 +680,49 @@ export default function EditorPage() {
           setStyles(processedStyles)
         }
 
+        // Load scroll effects
+        const { data: scrollEffectsData, error: scrollEffectsError } = await supabase
+          .from('scroll_effects')
+          .select('*')
+          .eq('project_id', projectId)
+          .single()
+
+        if (scrollEffectsError && scrollEffectsError.code !== 'PGRST116') {
+          console.error('Error loading scroll effects:', scrollEffectsError)
+        } else if (scrollEffectsData) {
+          setScrollEffects({
+            enabled: scrollEffectsData.enabled,
+            animationType: scrollEffectsData.animation_type,
+            backgroundPattern: scrollEffectsData.background_pattern,
+            parallaxIntensity: scrollEffectsData.parallax_intensity,
+            showScrollProgress: scrollEffectsData.show_scroll_progress,
+            showScrollToTop: scrollEffectsData.show_scroll_to_top,
+            staggerAnimations: scrollEffectsData.stagger_animations,
+            mobileAnimations: scrollEffectsData.mobile_animations
+          })
+        }
+
+        // Load social links
+        const { data: socialLinksData, error: socialLinksError } = await supabase
+          .from('social_links')
+          .select('*')
+          .eq('project_id', projectId)
+          .single()
+
+        if (socialLinksError && socialLinksError.code !== 'PGRST116') {
+          console.error('Error loading social links:', socialLinksError)
+        } else if (socialLinksData) {
+          setSocialLinks({
+            isEnabled: socialLinksData.is_enabled,
+            facebookUrl: socialLinksData.facebook_url || '',
+            instagramUrl: socialLinksData.instagram_url || '',
+            displayLocation: socialLinksData.display_location,
+            callToAction: socialLinksData.call_to_action,
+            iconStyle: socialLinksData.icon_style,
+            iconSize: socialLinksData.icon_size
+          })
+        }
+
         // Load events
         const { data: eventsData, error: eventsError } = await supabase
           .from('wedding_events')
@@ -415,6 +769,33 @@ export default function EditorPage() {
           setVenueLocation(venue)
         }
 
+        // Load background music
+        const { data: musicData, error: musicError } = await supabase
+          .from('background_music')
+          .select('*')
+          .eq('project_id', projectId)
+          .single()
+
+        if (musicError && musicError.code !== 'PGRST116') {
+          console.error('Error loading background music:', musicError)
+        } else if (musicData) {
+          const musicConfig: BackgroundMusicConfig = {
+            id: musicData.id,
+            projectId: musicData.project_id,
+            fileUrl: musicData.file_url,
+            fileName: musicData.file_name,
+            fileSize: musicData.file_size,
+            duration: musicData.duration,
+            isPreset: musicData.is_preset,
+            presetCategory: musicData.preset_category,
+            isEnabled: musicData.is_enabled,
+            volume: musicData.volume,
+            autoPlay: musicData.auto_play,
+            loopEnabled: musicData.loop_enabled
+          }
+          setBackgroundMusic(musicConfig)
+        }
+
       } catch (error) {
         console.error('Error loading editor data:', error)
       } finally {
@@ -437,14 +818,14 @@ export default function EditorPage() {
     setContent(prev => {
       const sectionData = prev[section as keyof ContentData] as unknown as Record<string, unknown>;
       const subsectionData = sectionData[subsection] || {};
-      
+
       return {
         ...prev,
         [section]: {
           ...sectionData,
-          [subsection]: { 
+          [subsection]: {
             ...subsectionData,
-            [field]: value 
+            [field]: value
           }
         }
       };
@@ -550,6 +931,31 @@ export default function EditorPage() {
           .eq('project_id', projectId)
       }
 
+      // Save scroll effects
+      const { error: scrollEffectsError } = await supabase
+        .from('scroll_effects')
+        .upsert({
+          project_id: projectId,
+          enabled: scrollEffects.enabled,
+          animation_type: scrollEffects.animationType,
+          background_pattern: scrollEffects.backgroundPattern,
+          parallax_intensity: scrollEffects.parallaxIntensity,
+          show_scroll_progress: scrollEffects.showScrollProgress,
+          show_scroll_to_top: scrollEffects.showScrollToTop,
+          stagger_animations: scrollEffects.staggerAnimations,
+          mobile_animations: scrollEffects.mobileAnimations,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'project_id'
+        })
+
+      if (scrollEffectsError) {
+        console.error('❌ Error saving scroll effects:', scrollEffectsError)
+        throw scrollEffectsError
+      } else {
+        console.log('✅ Scroll effects saved successfully')
+      }
+
       console.log('Content saved successfully!')
     } catch (error) {
       console.error('Error saving content:', error)
@@ -608,6 +1014,16 @@ export default function EditorPage() {
     window.open(previewUrl, '_blank')
   }
 
+  const handleWizardStepSelect = (tabValue: string) => {
+    // Simple placeholder for step selection
+    console.log('Step selected:', tabValue)
+  }
+
+  const handleWizardComplete = () => {
+    setWizardMode(false)
+    setShowWizard(false)
+  }
+
   // Debug logging right before TemplatePreview
   console.log('🔍 Debug RSVP Preview Check:', {
     projectId: projectId,
@@ -647,7 +1063,27 @@ export default function EditorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <>
+      {/* Global styles for mobile preview */}
+      <style jsx global>{`
+        .mobile-viewport .grid {
+          grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+        }
+        .mobile-viewport .lg\\:grid-cols-2 {
+          grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+        }
+        .mobile-viewport .md\\:grid-cols-2 {
+          grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+        }
+        .mobile-viewport .flex.lg\\:flex-row {
+          flex-direction: column !important;
+        }
+        .mobile-viewport .md\\:flex-row {
+          flex-direction: column !important;
+        }
+      `}</style>
+
+      <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <EditorHeader 
         project={project}
@@ -660,127 +1096,71 @@ export default function EditorPage() {
 
       {/* Main Content Area - Fixed Layout */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-          <div className="h-full flex gap-6">
-            {/* Editor Panel - Fixed Width */}
-            <div className="w-80 flex flex-col bg-white rounded-lg shadow-sm border">
+        <div className="w-full px-2 sm:px-4 py-6">
+          <div className="h-full flex gap-4">
+            {/* Editor Panel - Increased Width */}
+            <div className={`${wizardMode ? 'w-[500px]' : 'w-96'} flex flex-col bg-white rounded-lg shadow-sm border`}>
               <div className="p-4 border-b">
-                <h2 className="text-lg font-semibold text-gray-900">Customize Your Website</h2>
-                <p className="text-sm text-gray-600">Edit content and styling for your wedding website</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Setup Guide
+                    </h2>
+                    <p className="text-sm text-gray-600">
+                      Follow the guided setup to create your wedding website
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-                {/* UPDATED: Added venue tab, now grid-cols-7 */}
-                <TabsList className="grid w-full grid-cols-7 mx-4 mt-4">
-                  <TabsTrigger value="content" className="flex flex-col items-center p-2 text-xs">
-                    <Type className="h-3 w-3 mb-1" />
-                    <span>Content</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="events" className="flex flex-col items-center p-2 text-xs">
-                    <Calendar className="h-3 w-3 mb-1" />
-                    <span>Events</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="venue" className="flex flex-col items-center p-2 text-xs">
-                    <MapPin className="h-3 w-3 mb-1" />
-                    <span>Venue</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="gallery" className="flex flex-col items-center p-2 text-xs">
-                    <Images className="h-3 w-3 mb-1" />
-                    <span>Gallery</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="rsvp" className="flex flex-col items-center p-2 text-xs">
-                    <Users className="h-3 w-3 mb-1" />
-                    <span>RSVP</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="wishes" className="flex flex-col items-center p-2 text-xs">
-                    <MessageCircle className="h-3 w-3 mb-1" />
-                    <span>Wishes</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="style" className="flex flex-col items-center p-2 text-xs">
-                    <Palette className="h-3 w-3 mb-1" />
-                    <span>Style</span>
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* Tab Content - Scrollable */}
-                <div className="flex-1 mt-4 overflow-y-auto">
-                  <TabsContent value="content" className="mt-0 h-full">
-                    <div className="space-y-4">
-                      <ContentEditor 
-                        projectId={projectId}
-                        content={content}
-                        onContentUpdate={updateContent}
-                        onNestedContentUpdate={updateNestedContent}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="events" className="mt-0 h-full">
-                    <div className="space-y-4">
-                      <EventsEditor 
-                        events={events}
-                        onEventsUpdate={updateEvents}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="venue" className="mt-0 h-full">
-                    <div className="space-y-4">
-                      <MapLocationEditor 
-                        venue={venueLocation}
-                        onVenueUpdate={setVenueLocation}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="gallery" className="mt-0 h-full">
-                    <div className="space-y-4">
-                      <GalleryEditor 
-                        projectId={projectId}
-                        onGalleryUpdate={refreshGalleryImages}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="rsvp" className="mt-0 h-full">
-                    <div className="space-y-4">
-                      <RSVPEditor 
-                        projectId={projectId}
-                        subscriptionTier={user?.current_subscription || 'free'}
-                        onUpgrade={handleUpgrade}
-                        supabase={supabase}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="wishes" className="mt-0 h-full">
-                    <div className="space-y-4">
-                      <WishesEditor 
-                        projectId={projectId}
-                        userTier={user?.current_subscription || 'free'}
-                        onUpgrade={handleUpgrade}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  {/* REMOVED: Domain Tab Content */}
-
-                  <TabsContent value="style" className="mt-0 h-full">
-                    <div className="space-y-4">
-                      <StyleEditor 
-                        styles={styles}
-                        onStyleUpdate={(field: string, value: string) => {
-                          setStyles(prev => ({ ...prev, [field]: value }))
-                        }}
-                      />
-                    </div>
-                  </TabsContent>
-                </div>
-              </Tabs>
+              {/* Setup Wizard Content */}
+              <div className="flex-1 p-3 overflow-y-auto">
+                  <SetupWizard
+                    onStepSelect={handleWizardStepSelect}
+                    onWizardComplete={handleWizardComplete}
+                    currentContent={content}
+                    currentStyles={styles}
+                    scrollEffects={scrollEffects}
+                    socialLinks={socialLinks}
+                    events={events}
+                    galleryImages={galleryImages}
+                    venueLocation={venueLocation}
+                    rsvpConfig={rsvpConfig}
+                    backgroundMusic={backgroundMusic}
+                    onContentUpdate={updateContent}
+                    onNestedContentUpdate={updateNestedContent}
+                    onStyleUpdate={(field: string, value: string) => {
+                      setStyles(prev => ({ ...prev, [field]: value }))
+                    }}
+                    onScrollEffectsUpdate={async (newConfig) => {
+                      console.log('📝 Editor: Receiving scroll effects update:', newConfig)
+                      setScrollEffects(newConfig)
+                      await saveScrollEffectsConfig(newConfig)
+                    }}
+                    onSocialLinksUpdate={async (newConfig) => {
+                      console.log('📝 Editor: Receiving social links update:', newConfig)
+                      setSocialLinks(newConfig)
+                      await saveSocialLinksConfig(newConfig)
+                    }}
+                    onEventsUpdate={updateEvents}
+                    onVenueUpdate={setVenueLocation}
+                    onGalleryUpdate={refreshGalleryImages}
+                    projectId={projectId}
+                    onRSVPUpdate={async (config) => {
+                      setRsvpConfig(config);
+                      await saveRSVPConfig(config);
+                    }}
+                    onBackgroundMusicUpdate={async (config) => {
+                      setBackgroundMusic(config)
+                      await saveBackgroundMusicConfig(config)
+                    }}
+                    userTier={subscriptionTier}
+                  />
+              </div>
             </div>
 
             {/* Preview Panel - Flexible Width */}
-            <div className="flex-1 bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div className="flex-1 bg-white rounded-lg shadow-sm border overflow-hidden flex flex-col">
               <div className="h-12 flex items-center justify-between px-4 border-b bg-gray-50">
                 <h3 className="text-sm font-medium text-gray-700">Live Preview</h3>
                 <span className="text-xs text-green-600 flex items-center">
@@ -789,22 +1169,81 @@ export default function EditorPage() {
                 </span>
               </div>
 
-              <div className="flex-1 overflow-auto">
-                <TemplatePreview
-                  content={content}
-                  styles={styles}
-                  events={events}
-                  galleryImages={galleryImages}
-                  userTier={subscriptionTier}
-                  projectId={projectId}
-                  rsvpConfig={rsvpConfig}
-                  venueLocation={venueLocation}
-                />
+              {/* Desktop/Mobile Toggle */}
+              <div className="px-4 py-3 border-b bg-gray-50/50">
+                <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+                  <button
+                    onClick={() => setPreviewMode('desktop')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      previewMode === 'desktop'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Monitor className="h-4 w-4" />
+                    Desktop
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode('mobile')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      previewMode === 'mobile'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Smartphone className="h-4 w-4" />
+                    Mobile
+                  </button>
+                </div>
+              </div>
+
+              {/* Preview Container */}
+              <div className="flex-1 overflow-auto bg-gray-100">
+                {previewMode === 'desktop' ? (
+                  /* Desktop Preview - Full Width */
+                  <div className="w-full h-full">
+                    <TemplatePreview
+                      content={content}
+                      styles={styles}
+                      events={events}
+                      galleryImages={galleryImages}
+                      userTier={subscriptionTier}
+                      projectId={projectId}
+                      rsvpConfig={rsvpConfig}
+                      venueLocation={venueLocation}
+                      backgroundMusic={backgroundMusic}
+                    />
+                  </div>
+                ) : (
+                  /* Mobile Preview - iPhone Container with Internal Scrolling */
+                  <div className="flex items-start justify-center py-4 h-full">
+                    <div className="w-[393px] h-[852px] bg-white shadow-xl rounded-[2.5rem] overflow-hidden border-8 border-gray-800 relative">
+                      {/* iPhone Notch */}
+                      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-gray-800 rounded-b-xl z-10"></div>
+
+                      {/* Mobile Content Container - Scrollable */}
+                      <div className="w-full h-full overflow-y-auto overflow-x-hidden mobile-viewport">
+                        <TemplatePreview
+                          content={content}
+                          styles={styles}
+                          events={events}
+                          galleryImages={galleryImages}
+                          userTier={subscriptionTier}
+                          projectId={projectId}
+                          rsvpConfig={rsvpConfig}
+                          venueLocation={venueLocation}
+                          backgroundMusic={backgroundMusic}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

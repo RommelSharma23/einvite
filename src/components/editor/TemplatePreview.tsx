@@ -1,7 +1,7 @@
 // File: src/components/editor/TemplatePreview.tsx - Part 1
 
-import React, { useState } from 'react'
-import { Heart, Calendar, MapPin, Clock, Images, Eye, ChevronRight, Users, Send, Music, ChevronDown, ChevronUp } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Heart, Calendar, MapPin, Clock, Images, Eye, ChevronRight, Users, Send, Music, ChevronDown, ChevronUp, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type { VenueLocation } from '@/components/wedding/WeddingMapLocation'
 
@@ -31,6 +31,7 @@ interface HeroContent {
   weddingDate?: string
   welcomeMessage?: string
   heroImageUrl?: string
+  heroImageUrls?: string[]
 }
 
 interface PersonInfo {
@@ -87,6 +88,22 @@ interface RSVPConfig {
   subtitle?: string;
 }
 
+// Add Background Music Config interface
+interface BackgroundMusicConfig {
+  id?: string
+  projectId: string
+  fileUrl: string
+  fileName: string
+  fileSize?: number
+  duration?: number
+  isPreset: boolean
+  presetCategory?: string
+  isEnabled: boolean
+  volume: number
+  autoPlay: boolean
+  loopEnabled: boolean
+}
+
 // Updated TemplatePreviewProps interface
 interface TemplatePreviewProps {
   content: ContentData
@@ -97,7 +114,9 @@ interface TemplatePreviewProps {
   userTier?: 'free' | 'silver' | 'gold' | 'platinum'
   projectId?: string
   rsvpConfig?: RSVPConfig
-  venueLocation?: VenueLocation | null  // Added this line
+  venueLocation?: VenueLocation | null
+  backgroundMusic?: BackgroundMusicConfig | null
+  isMobilePreview?: boolean
 }
 
 // File: src/components/editor/TemplatePreview.tsx - Part 2
@@ -312,18 +331,268 @@ const RSVPPreview: React.FC<{
   )
 }
 
+// Hero Image Slider Component
+function HeroImageSlider({ 
+  images, 
+  children,
+  styles 
+}: { 
+  images: string[]
+  children: React.ReactNode
+  styles: StylesData
+}) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(true)
+
+  // Auto-advance slider
+  useEffect(() => {
+    if (!isPlaying || images.length <= 1) return
+
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % images.length)
+    }, 6000)
+
+    return () => clearInterval(interval)
+  }, [images.length, isPlaying])
+
+  // Preload all images for smooth transitions
+  useEffect(() => {
+    images.forEach(src => {
+      const img = new Image()
+      img.src = src
+    })
+  }, [images])
+
+  const goToSlide = useCallback((index: number) => {
+    setCurrentIndex(index)
+    setIsPlaying(false)
+    setTimeout(() => setIsPlaying(true), 10000) // Resume after 10s
+  }, [])
+
+  const nextSlide = useCallback(() => {
+    setCurrentIndex(prev => (prev + 1) % images.length)
+    setIsPlaying(false)
+    setTimeout(() => setIsPlaying(true), 10000)
+  }, [images.length])
+
+  const prevSlide = useCallback(() => {
+    setCurrentIndex(prev => (prev - 1 + images.length) % images.length)
+    setIsPlaying(false)
+    setTimeout(() => setIsPlaying(true), 10000)
+  }, [images.length])
+
+  return (
+    <div 
+      className="relative w-full px-6 py-12 border-b overflow-hidden group"
+      style={{ 
+        fontFamily: styles.fontFamily
+      }}
+      onMouseEnter={() => setIsPlaying(false)}
+      onMouseLeave={() => setIsPlaying(true)}
+    >
+      {/* Background Images for Smooth Crossfade */}
+      {images.map((image, index) => (
+        <div
+          key={index}
+          className="absolute inset-0 transition-opacity duration-1000 ease-in-out"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${image})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            opacity: index === currentIndex ? 1 : 0,
+            zIndex: index === currentIndex ? 1 : 0
+          }}
+        />
+      ))}
+
+      {/* Content */}
+      <div className="relative z-10">
+        {children}
+      </div>
+
+      {/* Navigation - Only show if multiple images */}
+      {images.length > 1 && (
+        <>
+          {/* Arrow Navigation */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black bg-opacity-20 hover:bg-opacity-40 text-white p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100"
+            aria-label="Previous image"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          
+          <button
+            onClick={nextSlide}
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black bg-opacity-20 hover:bg-opacity-40 text-white p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100"
+            aria-label="Next image"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+
+          {/* Dot Navigation */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex space-x-2">
+            {images.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === currentIndex 
+                    ? 'bg-white scale-125' 
+                    : 'bg-white bg-opacity-50 hover:bg-opacity-75'
+                }`}
+                aria-label={`Go to image ${index + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// Background Music Player Component
+const BackgroundMusicPlayer: React.FC<{ config: BackgroundMusicConfig }> = ({ config }) => {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isMuted, setIsMuted] = useState(true) // Start muted as per requirements
+  const audioRef = React.useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    // Set volume
+    audio.volume = config.volume
+
+    // Auto-play if enabled (but muted initially)
+    if (config.autoPlay) {
+      audio.muted = true // Browser policy requires muted autoplay
+      audio.play().then(() => {
+        setIsPlaying(true)
+      }).catch(console.error)
+    }
+
+    // Setup loop
+    audio.loop = config.loopEnabled
+
+    // Event listeners
+    const handlePlay = () => setIsPlaying(true)
+    const handlePause = () => setIsPlaying(false)
+    const handleEnded = () => {
+      if (!config.loopEnabled) {
+        setIsPlaying(false)
+      }
+    }
+
+    audio.addEventListener('play', handlePlay)
+    audio.addEventListener('pause', handlePause)
+    audio.addEventListener('ended', handleEnded)
+
+    // Cleanup
+    return () => {
+      audio.removeEventListener('play', handlePlay)
+      audio.removeEventListener('pause', handlePause)
+      audio.removeEventListener('ended', handleEnded)
+      audio.pause()
+    }
+  }, [config])
+
+  const togglePlayPause = () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    if (isPlaying) {
+      audio.pause()
+    } else {
+      // If user clicks play, also unmute
+      if (audio.muted) {
+        audio.muted = false
+        setIsMuted(false)
+      }
+      audio.play().catch(console.error)
+    }
+  }
+
+  const toggleMute = () => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    audio.muted = !isMuted
+    setIsMuted(!isMuted)
+  }
+
+  return (
+    <div className="fixed top-4 left-4 z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-3 flex items-center gap-3 min-w-[200px]">
+      <button
+        onClick={togglePlayPause}
+        className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 ${
+          isPlaying
+            ? 'bg-blue-500 hover:bg-blue-600 text-white shadow-md'
+            : 'bg-green-500 hover:bg-green-600 text-white shadow-md'
+        }`}
+        title={isPlaying ? 'Pause music' : 'Play music'}
+      >
+        {isPlaying ? (
+          <div className="flex gap-1">
+            <div className="w-1 h-4 bg-white rounded-sm"></div>
+            <div className="w-1 h-4 bg-white rounded-sm"></div>
+          </div>
+        ) : (
+          <div className="w-0 h-0 border-l-[6px] border-l-white border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent ml-0.5"></div>
+        )}
+      </button>
+
+      <button
+        onClick={toggleMute}
+        className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-200 ${
+          isMuted
+            ? 'bg-red-500 hover:bg-red-600 text-white shadow-md'
+            : 'bg-gray-500 hover:bg-gray-600 text-white shadow-md'
+        }`}
+        title={isMuted ? 'Unmute music' : 'Mute music'}
+      >
+        {isMuted ? (
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.795L4.146 13.37a.5.5 0 00-.354-.147H2a1 1 0 01-1-1V7.777a1 1 0 011-1h1.793a.5.5 0 00.353-.146l4.237-3.425a1 1 0 01.617-.13zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
+            <path d="M3 3l14 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        ) : (
+          <Music className="w-5 h-5" />
+        )}
+      </button>
+
+      <div className="flex flex-col flex-1 min-w-0">
+        <span className="text-xs font-medium text-gray-900 truncate">
+          {config.fileName}
+        </span>
+        <span className="text-xs text-gray-500">
+          {isPlaying ? (isMuted ? 'Playing (Muted)' : 'Playing') : 'Paused'}
+        </span>
+      </div>
+
+      <audio
+        ref={audioRef}
+        src={config.fileUrl}
+        preload="metadata"
+      />
+    </div>
+  )
+}
+
 // File: src/components/editor/TemplatePreview.tsx - Part 3
 
-const TemplatePreview: React.FC<TemplatePreviewProps> = ({ 
-  content, 
-  styles, 
-  events = [], 
-  galleryImages = [], 
+const TemplatePreview: React.FC<TemplatePreviewProps> = ({
+  content,
+  styles,
+  events = [],
+  galleryImages = [],
   gallerySettings,
   userTier = 'free',
   projectId,
   rsvpConfig,
-  venueLocation  // Added this parameter
+  venueLocation,
+  backgroundMusic
 }) => {
   
   // Helper function to check if RSVP should be shown
@@ -334,50 +603,100 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
 
   return (
     <div className="w-full bg-white">
-      {/* Hero Section */}
-      <section className="relative w-full px-6 py-12 bg-gradient-to-br from-blue-50 to-purple-50 border-b" style={{ fontFamily: styles.fontFamily }}>
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="space-y-4">
-            <div className="flex items-center justify-center space-x-6 mb-6">
-              <div className="text-center">
-                <h1 
-                  className="text-2xl font-serif"
-                  style={{ color: styles.primaryColor }}
-                >
-                  {content.hero?.brideName || 'Bride'}
-                </h1>
+      {/* Hero Section with Slider */}
+      {content.hero?.heroImageUrls && content.hero.heroImageUrls.length > 0 ? (
+        <HeroImageSlider images={content.hero.heroImageUrls} styles={styles}>
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="space-y-4">
+              <div className="flex items-center justify-center space-x-6 mb-6">
+                <div className="text-center">
+                  <h1 
+                    className="text-2xl font-serif text-white"
+                  >
+                    {content.hero?.brideName || 'Bride'}
+                  </h1>
+                </div>
+                <Heart className="h-6 w-6 text-white" />
+                <div className="text-center">
+                  <h1 
+                    className="text-2xl font-serif text-white"
+                  >
+                    {content.hero?.groomName || 'Groom'}
+                  </h1>
+                </div>
               </div>
-              <Heart className="h-6 w-6" style={{ color: styles.secondaryColor }} />
-              <div className="text-center">
-                <h1 
-                  className="text-2xl font-serif"
-                  style={{ color: styles.primaryColor }}
-                >
-                  {content.hero?.groomName || 'Groom'}
-                </h1>
-              </div>
+              
+              {content.hero?.weddingDate && (
+                <div className="flex items-center justify-center space-x-2 text-lg text-white">
+                  <Calendar className="h-5 w-5" />
+                  <span>{new Date(content.hero.weddingDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}</span>
+                </div>
+              )}
+              
+              {content.hero?.welcomeMessage && (
+                <p className="text-gray-100 max-w-2xl mx-auto leading-relaxed">
+                  {content.hero.welcomeMessage}
+                </p>
+              )}
             </div>
-            
-            {content.hero?.weddingDate && (
-              <div className="flex items-center justify-center space-x-2 text-lg text-gray-700">
-                <Calendar className="h-5 w-5" />
-                <span>{new Date(content.hero.weddingDate).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}</span>
-              </div>
-            )}
-            
-            {content.hero?.welcomeMessage && (
-              <p className="text-gray-600 max-w-2xl mx-auto leading-relaxed">
-                {content.hero.welcomeMessage}
-              </p>
-            )}
           </div>
-        </div>
-      </section>
+        </HeroImageSlider>
+      ) : (
+        <section 
+          className="relative w-full px-6 py-12 border-b"
+          style={{ 
+            fontFamily: styles.fontFamily,
+            background: 'linear-gradient(to bottom right, rgb(239 246 255), rgb(245 243 255))'
+          }}
+        >
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="space-y-4">
+              <div className="flex items-center justify-center space-x-6 mb-6">
+                <div className="text-center">
+                  <h1 
+                    className="text-2xl font-serif"
+                    style={{ color: styles.primaryColor }}
+                  >
+                    {content.hero?.brideName || 'Bride'}
+                  </h1>
+                </div>
+                <Heart className="h-6 w-6" style={{ color: styles.secondaryColor }} />
+                <div className="text-center">
+                  <h1 
+                    className="text-2xl font-serif"
+                    style={{ color: styles.primaryColor }}
+                  >
+                    {content.hero?.groomName || 'Groom'}
+                  </h1>
+                </div>
+              </div>
+              
+              {content.hero?.weddingDate && (
+                <div className="flex items-center justify-center space-x-2 text-lg text-gray-700">
+                  <Calendar className="h-5 w-5" />
+                  <span>{new Date(content.hero.weddingDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}</span>
+                </div>
+              )}
+              
+              {content.hero?.welcomeMessage && (
+                <p className="text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                  {content.hero.welcomeMessage}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Events Section */}
       {events.length > 0 && (

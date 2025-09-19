@@ -108,7 +108,7 @@ export default function DashboardPage() {
   }, [router])
 
   const createNewProject = () => {
-    router.push('/templates')
+    router.push('/dashboard/templates')
   }
 
   const editProject = (projectId: string) => {

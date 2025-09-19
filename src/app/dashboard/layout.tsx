@@ -46,7 +46,7 @@ const navigationItems = [
   },
   {
     name: 'Templates',
-    href: '/templates',
+    href: '/dashboard/templates',
     icon: LayoutDashboard,
     current: false
   },

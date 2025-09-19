@@ -72,6 +72,7 @@ export function MultiImageUpload({
       const fileName = `${user.id}/${projectId}/gallery/${galleryCategory}/${timestamp}_${Math.random().toString(36).substring(7)}.${fileExt}`
 
       // Upload to Supabase Storage
+      console.log('🚀 Attempting to upload file:', fileName)
       const { data, error: uploadError } = await supabase.storage
         .from('wedding-images')
         .upload(fileName, file, {
@@ -80,8 +81,16 @@ export function MultiImageUpload({
         })
 
       if (uploadError) {
+        console.error('❌ Storage upload error:', uploadError)
+        console.error('   Error details:', {
+          message: uploadError.message,
+          statusCode: uploadError.statusCode,
+          error: uploadError.error
+        })
         throw uploadError
       }
+
+      console.log('✅ File uploaded successfully:', data)
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
