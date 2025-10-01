@@ -35,7 +35,7 @@ const SimpleLoading = ({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) => {
   
   return (
     <div className="flex items-center justify-center">
-      <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizeClasses[size]}`} />
+      <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-purple-600 ${sizeClasses[size]}`} />
     </div>
   )
 }
@@ -445,7 +445,7 @@ export default function TemplatesPage() {
                 onClick={() => setSelectedCategory(category.id)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg border text-sm font-medium whitespace-nowrap transition-colors ${
                   selectedCategory === category.id
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    ? 'border-purple-500 bg-purple-50 text-purple-700'
                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -463,11 +463,11 @@ export default function TemplatesPage() {
             {filteredTemplates.some(t => canUserAccessTemplate(t)) && (
               <div className="mb-12">
                 <div className="flex items-center mb-6">
-                  <div className="h-px bg-green-200 flex-1"></div>
-                  <div className="px-4 py-2 bg-green-50 rounded-full border border-green-200">
-                    <span className="text-green-700 font-medium text-sm">✨ Available for You</span>
+                  <div className="h-px bg-purple-200 flex-1"></div>
+                  <div className="px-4 py-2 bg-purple-50 rounded-full border border-purple-200">
+                    <span className="text-purple-700 font-medium text-sm">✨ Available for You</span>
                   </div>
-                  <div className="h-px bg-green-200 flex-1"></div>
+                  <div className="h-px bg-purple-200 flex-1"></div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {filteredTemplates
@@ -477,7 +477,7 @@ export default function TemplatesPage() {
                       const isCreating = creatingProject === template.id
 
                       return (
-                        <Card key={template.id} className="group hover:shadow-lg transition-shadow overflow-hidden border-green-200 bg-green-50/30">
+                        <Card key={template.id} className="group hover:shadow-lg transition-shadow overflow-hidden border-purple-200 bg-purple-50/30">
                           {/* Template Preview */}
                           <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                             {template.preview_image_url ? (
@@ -492,8 +492,8 @@ export default function TemplatesPage() {
                                 }}
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-100 to-blue-100">
-                                <Sparkles className="h-12 w-12 text-green-500" />
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-100 to-pink-100">
+                                <Sparkles className="h-12 w-12 text-purple-500" />
                               </div>
                             )}
                             
@@ -511,7 +511,7 @@ export default function TemplatesPage() {
 
                             {/* Available Badge */}
                             <div className="absolute top-3 left-3">
-                              <Badge className="bg-green-500 hover:bg-green-600">
+                              <Badge className="bg-purple-500 hover:bg-purple-600">
                                 ✓ Available
                               </Badge>
                             </div>
@@ -528,7 +528,7 @@ export default function TemplatesPage() {
                           </div>
 
                           <CardHeader>
-                            <CardTitle className="text-lg text-green-800">{template.name}</CardTitle>
+                            <CardTitle className="text-lg text-purple-800">{template.name}</CardTitle>
                             <CardDescription>{template.description}</CardDescription>
                           </CardHeader>
 
@@ -542,7 +542,7 @@ export default function TemplatesPage() {
                                 onClick={() => openModal(template)}
                                 disabled={isCreating}
                                 size="sm"
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-purple-600 hover:bg-purple-700"
                               >
                                 {isCreating ? (
                                   <>
@@ -645,7 +645,7 @@ export default function TemplatesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => router.push('/dashboard/settings?upgrade=true')}
-                                className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                                className="border-amber-300 text-amber-600 hover:bg-amber-50"
                               >
                                 <Crown className="mr-2 h-4 w-4" />
                                 Upgrade to {template.tier_required}
@@ -767,7 +767,7 @@ export default function TemplatesPage() {
                 <Button
                   onClick={handleCreateProject}
                   disabled={creatingProject === selectedTemplate.id}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-purple-600 hover:bg-purple-700"
                 >
                   {creatingProject === selectedTemplate.id ? (
                     <>

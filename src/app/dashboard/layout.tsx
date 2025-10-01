@@ -5,13 +5,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Settings, 
-  LogOut, 
-  Menu, 
-  X, 
+import {
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  X,
   Crown,
   Bell
 } from 'lucide-react'
@@ -39,21 +37,9 @@ const navigationItems = [
     current: true
   },
   {
-    name: 'My Projects',
-    href: '/dashboard/projects',
-    icon: FileText,
-    current: false
-  },
-  {
     name: 'Templates',
     href: '/dashboard/templates',
     icon: LayoutDashboard,
-    current: false
-  },
-  {
-    name: 'Settings',
-    href: '/dashboard/settings',
-    icon: Settings,
     current: false
   }
 ]
@@ -149,7 +135,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
             <div className="flex-shrink-0 flex items-center px-4">
-              <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">E</span>
               </div>
               <span className="ml-2 text-xl font-bold text-gray-900">{APP_CONFIG.name}</span>
@@ -175,7 +161,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">E</span>
               </div>
               <span className="ml-2 text-xl font-bold text-gray-900">{APP_CONFIG.name}</span>

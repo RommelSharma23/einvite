@@ -5,7 +5,10 @@
       "Bash(npm install:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
-      "Bash(rmdir:*)"
+      "Bash(rmdir:*)",
+      "Bash(git commit:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run type-check:*)"
     ],
     "deny": [],
     "ask": []

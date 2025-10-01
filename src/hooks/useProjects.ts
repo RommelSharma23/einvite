@@ -116,6 +116,12 @@ export function useProjects() {
       return null
     }
 
+    // Check project limit for all users during launch
+    if (projects.length >= 1) {
+      setError('During our launch phase, each user can create only 1 project. More projects will be available soon!')
+      return null
+    }
+
     try {
       setError(null)
 
@@ -253,6 +259,21 @@ export function useProjects() {
     }
   }
 
+  const canCreateProject = () => {
+    if (!user) return false
+    // During launch phase, all users are limited to 1 project
+    return projects.length < 1
+  }
+
+  const getProjectLimitMessage = () => {
+    if (!user) return 'Please log in to create projects'
+    const remaining = Math.max(0, 1 - projects.length)
+    if (remaining === 0) {
+      return 'Launch limit: 1 project per user'
+    }
+    return `${remaining} project remaining`
+  }
+
   return {
     user, // Added user to return values
     projects,
@@ -263,6 +284,8 @@ export function useProjects() {
     deleteProject,
     publishProject,
     refreshProjects,
+    canCreateProject,
+    getProjectLimitMessage,
     // Computed values
     publishedProjects: projects.filter(p => p.is_published),
     draftProjects: projects.filter(p => !p.is_published),

@@ -2,27 +2,29 @@
 
 'use client'
 
+
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Plus, 
-  Edit3, 
-  Eye, 
-  Calendar, 
+import {
+  Plus,
+  Edit3,
+  Eye,
+  Calendar,
   Crown,
   ExternalLink,
   Trash2,
-  BarChart3,
+  Lock,
   QrCode,
   Camera,
-  X
+  Users
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loading } from '@/components/ui/loading'
-import QRCodeGenerator from '@/components/dashboard/QRCodeGenerator'
+import { useProjects } from '@/hooks/useProjects'
 
 interface WeddingProject {
   id: string
@@ -48,121 +50,38 @@ interface User {
   }
 }
 
-interface UserProfile {
-  current_subscription: 'free' | 'silver' | 'gold' | 'platinum'
-}
-
-interface ProjectContent {
-  [projectId: string]: {
-    brideName?: string
-    groomName?: string
-    weddingDate?: string
-  }
-}
-
 export default function DashboardPage() {
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [projects, setProjects] = useState<WeddingProject[]>([])
-  const [projectsContent, setProjectsContent] = useState<ProjectContent>({})
-  const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalProjects: 0,
-    totalViews: 0,
-    publishedProjects: 0
-  })
-
-  // QR Code Modal State
-  const [qrModalOpen, setQrModalOpen] = useState(false)
-  const [selectedProject, setSelectedProject] = useState<WeddingProject | null>(null)
-  
+  const {
+    user,
+    projects,
+    loading,
+    error,
+    canCreateProject,
+    getProjectLimitMessage,
+    publishedProjects,
+    totalViews,
+    deleteProject: deleteProjectFromHook
+  } = useProjects()
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true)
-
-        // Check authentication
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (!authUser) {
-          router.push('/auth/login')
-          return
-        }
-        setUser(authUser as User)
-
-        // Load user profile
-        const { data: userProfileData, error: userError } = await supabase
-          .from('users')
-          .select('current_subscription')
-          .eq('id', authUser.id)
-          .single()
-
-        if (userProfileData && !userError) {
-          setUserProfile(userProfileData)
-        }
-
-        // Load user's projects
-        const { data: projectsData, error: projectsError } = await supabase
-          .from('wedding_projects')
-          .select(`
-            *,
-            template:templates(name)
-          `)
-          .eq('user_id', authUser.id)
-          .order('updated_at', { ascending: false })
-
-        if (projectsError) {
-          console.error('Error loading projects:', projectsError)
-          return
-        }
-
-        setProjects(projectsData || [])
-
-        // Load hero content for projects to get bride/groom names
-        if (projectsData && projectsData.length > 0) {
-          const { data: contentData, error: contentError } = await supabase
-            .from('wedding_content')
-            .select('project_id, content_data')
-            .eq('section_type', 'hero')
-            .in('project_id', projectsData.map(p => p.id))
-
-          if (contentData && !contentError) {
-            const contentMap: ProjectContent = {}
-            contentData.forEach(item => {
-              contentMap[item.project_id] = {
-                brideName: item.content_data?.brideName,
-                groomName: item.content_data?.groomName,
-                weddingDate: item.content_data?.weddingDate
-              }
-            })
-            setProjectsContent(contentMap)
-          }
-        }
-
-        // Calculate stats
-        const totalProjects = projectsData?.length || 0
-        const publishedProjects = projectsData?.filter(p => p.is_published).length || 0
-        const totalViews = projectsData?.reduce((sum, p) => sum + (p.view_count || 0), 0) || 0
-
-        setStats({
-          totalProjects,
-          publishedProjects,
-          totalViews
-        })
-
-      } catch (error) {
-        console.error('Error loading dashboard:', error)
-      } finally {
-        setLoading(false)
+    // Check authentication
+    const checkAuth = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) {
+        router.push('/auth/login')
+        return
       }
     }
-
-    loadData()
+    checkAuth()
   }, [router])
 
   const createNewProject = () => {
-    router.push('/dashboard/templates')
+    if (canCreateProject()) {
+      router.push('/dashboard/templates')
+    } else {
+      alert(getProjectLimitMessage())
+    }
   }
 
   const editProject = (projectId: string) => {
@@ -181,56 +100,28 @@ export default function DashboardPage() {
     }
   }
 
-  const viewRSVP = (projectId: string) => {
-    router.push(`/dashboard/rsvp/${projectId}`)
-  }
-
-  const openQRCodeModal = (project: WeddingProject) => {
-    setSelectedProject(project)
-    setQrModalOpen(true)
-  }
-
-  const closeQRCodeModal = () => {
-    setQrModalOpen(false)
-    setSelectedProject(null)
-  }
-
-  const openPhotoUpload = (project: WeddingProject) => {
-    router.push(`/dashboard/photo-upload/${project.id}`)
-  }
-
   const deleteProject = async (projectId: string) => {
     if (!confirm('Are you sure you want to delete this project?')) return
 
-    try {
-      const { error } = await supabase
-        .from('wedding_projects')
-        .delete()
-        .eq('id', projectId)
-
-      if (error) throw error
-
-      // Refresh projects list
-      setProjects(projects.filter(p => p.id !== projectId))
-      
-      // Update stats
-      const newTotalProjects = stats.totalProjects - 1
-      const deletedProject = projects.find(p => p.id === projectId)
-      const newPublishedProjects = deletedProject?.is_published 
-        ? stats.publishedProjects - 1 
-        : stats.publishedProjects
-      const newTotalViews = stats.totalViews - (deletedProject?.view_count || 0)
-
-      setStats({
-        totalProjects: newTotalProjects,
-        publishedProjects: newPublishedProjects,
-        totalViews: newTotalViews
-      })
-
-    } catch (error) {
-      console.error('Error deleting project:', error)
+    const success = await deleteProjectFromHook(projectId)
+    if (!success) {
       alert('Failed to delete project')
     }
+  }
+
+  const openQRCode = (projectId: string) => {
+    // Navigate to QR code page for the project
+    router.push(`/dashboard/qr/${projectId}`)
+  }
+
+  const openPhotoUpload = (projectId: string) => {
+    // Navigate to photo upload management page
+    router.push(`/dashboard/photo-upload/${projectId}`)
+  }
+
+  const openRSVP = (projectId: string) => {
+    // Navigate to RSVP dashboard page
+    router.push(`/dashboard/rsvp/${projectId}`)
   }
 
   const formatDate = (dateString: string) => {
@@ -249,33 +140,20 @@ export default function DashboardPage() {
     return user?.email?.split('@')[0] || 'there'
   }
 
-  // Check if RSVP feature should be shown
-  const shouldShowRSVP = (project: WeddingProject) => {
-    const projectTierEligible = ['silver', 'gold', 'platinum'].includes(project.subscription_tier)
-    const userTierEligible = userProfile && ['silver', 'gold', 'platinum'].includes(userProfile.current_subscription)
-    return projectTierEligible || userTierEligible
-  }
-
-  // Check if QR code feature should be shown
-  const shouldShowQRCode = (project: WeddingProject) => {
-    if (!project.is_published) return false
-    const projectTierEligible = ['silver', 'gold', 'platinum'].includes(project.subscription_tier)
-    const userTierEligible = userProfile && ['silver', 'gold', 'platinum'].includes(userProfile.current_subscription)
-    return projectTierEligible || userTierEligible
-  }
-
-  // Get website URL for QR code
-  const getWebsiteUrl = (project: WeddingProject) => {
-    if (project.custom_domain) {
-      return `https://${project.custom_domain}`
-    } else if (project.subdomain) {
-      return `${window.location.origin}/${project.subdomain}`
-    }
-    return ''
-  }
-
   if (loading) {
     return <Loading size="lg" text="Loading dashboard..." fullScreen />
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Dashboard</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -290,9 +168,18 @@ export default function DashboardPage() {
                 Welcome back, {getUserName()}! 👋
               </p>
             </div>
-            <Button onClick={createNewProject}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Website
+            <Button onClick={createNewProject} disabled={!canCreateProject()}>
+              {canCreateProject() ? (
+                <>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create New Website
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4 mr-2" />
+                  Upgrade to Create More
+                </>
+              )}
             </Button>
           </div>
         </div>
@@ -300,19 +187,22 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Banner */}
-        <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white mb-8">
+        <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white mb-8">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold mb-2">
                   Welcome back, {getUserName()}! 👋
                 </h2>
-                <p className="text-blue-100">
+                <p className="text-purple-100">
                   Ready to create beautiful wedding websites? Let&apos;s get started!
                 </p>
               </div>
               <Badge variant="secondary" className="bg-white/20 text-white">
-                {userProfile?.current_subscription || 'Free'} Plan
+                {user?.current_subscription ?
+                  `${user.current_subscription.charAt(0).toUpperCase() + user.current_subscription.slice(1)} Plan` :
+                  'Free Plan'
+                }
               </Badge>
             </div>
           </CardContent>
@@ -323,13 +213,13 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Edit3 className="h-6 w-6 text-blue-600" />
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Edit3 className="h-6 w-6 text-purple-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Projects</p>
-                  <p className="text-2xl font-bold">{stats.totalProjects}</p>
-                  <p className="text-xs text-gray-500">0 remaining</p>
+                  <p className="text-2xl font-bold">{projects.length}</p>
+                  <p className="text-xs text-gray-500">{getProjectLimitMessage()}</p>
                 </div>
               </div>
             </CardContent>
@@ -338,12 +228,12 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Eye className="h-6 w-6 text-green-600" />
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Eye className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Views</p>
-                  <p className="text-2xl font-bold">{stats.totalViews}</p>
+                  <p className="text-2xl font-bold">{totalViews}</p>
                   <p className="text-xs text-gray-500">Across all websites</p>
                 </div>
               </div>
@@ -353,12 +243,12 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <ExternalLink className="h-6 w-6 text-purple-600" />
+                <div className="p-2 bg-pink-100 rounded-lg">
+                  <ExternalLink className="h-6 w-6 text-pink-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Published</p>
-                  <p className="text-2xl font-bold">{stats.publishedProjects}</p>
+                  <p className="text-2xl font-bold">{publishedProjects.length}</p>
                   <p className="text-xs text-gray-500">Live websites</p>
                 </div>
               </div>
@@ -368,13 +258,24 @@ export default function DashboardPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Crown className="h-6 w-6 text-yellow-600" />
+                <div className="p-2 bg-amber-100 rounded-lg">
+                  <Crown className="h-6 w-6 text-amber-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Current Plan</p>
-                  <p className="text-2xl font-bold">{userProfile?.current_subscription || 'Free'}</p>
-                  <p className="text-xs text-gray-500">₹0</p>
+                  <p className="text-2xl font-bold">
+                    {user?.current_subscription ?
+                      user.current_subscription.charAt(0).toUpperCase() + user.current_subscription.slice(1) :
+                      'Free'
+                    }
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {user?.current_subscription === 'free' || !user?.current_subscription ? '₹0' :
+                     user?.current_subscription === 'silver' ? '₹999' :
+                     user?.current_subscription === 'gold' ? '₹1,999' :
+                     user?.current_subscription === 'platinum' ? '₹3,999' : '₹0'
+                    }
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -383,20 +284,40 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={createNewProject}>
+          <Card
+            className={`transition-shadow ${
+              canCreateProject()
+                ? 'cursor-pointer hover:shadow-lg'
+                : 'opacity-50 cursor-not-allowed'
+            }`}
+            onClick={canCreateProject() ? createNewProject : undefined}
+          >
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Plus className="h-6 w-6 text-blue-600" />
+              <div className={`w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-4 ${
+                canCreateProject() ? 'bg-purple-100' : 'bg-gray-100'
+              }`}>
+                {canCreateProject() ? (
+                  <Plus className="h-6 w-6 text-purple-600" />
+                ) : (
+                  <Lock className="h-6 w-6 text-gray-400" />
+                )}
               </div>
-              <h3 className="font-semibold mb-2">Create New Website</h3>
-              <p className="text-sm text-gray-600">Choose from beautiful templates</p>
+              <h3 className="font-semibold mb-2">
+                {canCreateProject() ? 'Create New Website' : 'Upgrade Required'}
+              </h3>
+              <p className="text-sm text-gray-600">
+                {canCreateProject()
+                  ? 'Choose from beautiful templates'
+                  : getProjectLimitMessage()
+                }
+              </p>
             </CardContent>
           </Card>
 
           <Card className="cursor-pointer hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Edit3 className="h-6 w-6 text-purple-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Edit3 className="h-6 w-6 text-blue-600" />
               </div>
               <h3 className="font-semibold mb-2">Manage Projects</h3>
               <p className="text-sm text-gray-600">Edit your existing websites</p>
@@ -405,8 +326,8 @@ export default function DashboardPage() {
 
           <Card className="cursor-pointer hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Crown className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Crown className="h-6 w-6 text-pink-600" />
               </div>
               <h3 className="font-semibold mb-2">Upgrade Plan</h3>
               <p className="text-sm text-gray-600">Unlock premium features</p>
@@ -422,9 +343,18 @@ export default function DashboardPage() {
                 <CardTitle>Your Projects</CardTitle>
                 <CardDescription>Manage and edit your wedding websites</CardDescription>
               </div>
-              <Button variant="outline" onClick={createNewProject}>
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
+              <Button variant="outline" onClick={createNewProject} disabled={!canCreateProject()}>
+                {canCreateProject() ? (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Project
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Upgrade Required
+                  </>
+                )}
               </Button>
             </div>
           </CardHeader>
@@ -436,9 +366,18 @@ export default function DashboardPage() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
                 <p className="text-gray-600 mb-4">Create your first wedding website to get started</p>
-                <Button onClick={createNewProject}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Website
+                <Button onClick={createNewProject} disabled={!canCreateProject()}>
+                  {canCreateProject() ? (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Website
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      Upgrade Required
+                    </>
+                  )}
                 </Button>
               </div>
             ) : (
@@ -449,7 +388,7 @@ export default function DashboardPage() {
                     className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
                   >
                     <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
                         <Calendar className="h-6 w-6 text-white" />
                       </div>
                       <div>
@@ -468,7 +407,7 @@ export default function DashboardPage() {
                       <Badge variant={project.is_published ? 'success' : 'secondary'}>
                         {project.is_published ? 'Published' : 'Draft'}
                       </Badge>
-                      
+
                       <div className="flex items-center space-x-1">
                         <Button
                           variant="ghost"
@@ -486,36 +425,29 @@ export default function DashboardPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {shouldShowRSVP(project) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => viewRSVP(project.id)}
-                            title="View RSVP Dashboard"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          >
-                            <BarChart3 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {shouldShowQRCode(project) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openQRCodeModal(project)}
-                            title="Generate QR Code"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                          >
-                            <QrCode className="h-4 w-4" />
-                          </Button>
-                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openPhotoUpload(project)}
-                          title="Manage Photo Uploads"
-                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                          onClick={() => openQRCode(project.id)}
+                          title="QR Code"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openPhotoUpload(project.id)}
+                          title="Photo Upload"
                         >
                           <Camera className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openRSVP(project.id)}
+                          title="RSVP Management"
+                        >
+                          <Users className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -534,22 +466,7 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-
       </div>
-
-      {/* QR Code Generator Modal */}
-      {selectedProject && (
-        <QRCodeGenerator
-          isOpen={qrModalOpen}
-          onClose={closeQRCodeModal}
-          websiteUrl={getWebsiteUrl(selectedProject)}
-          projectTitle={selectedProject.title}
-          userTier={userProfile?.current_subscription || 'free'}
-          brideName={projectsContent[selectedProject.id]?.brideName}
-          groomName={projectsContent[selectedProject.id]?.groomName}
-        />
-      )}
-
     </div>
   )
 }
