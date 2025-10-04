@@ -4,6 +4,7 @@
 
 import { Heart } from 'lucide-react'
 import Image from 'next/image'
+import { useScrollAnimation, useIconAnimation } from '@/hooks/useScrollAnimation'
 
 interface PersonInfo {
   name?: string
@@ -40,17 +41,19 @@ export function WeddingCouple({
   fontFamily,
   galleryImages = []
 }: WeddingCoupleProps) {
+  const headerAnimation = useScrollAnimation({ duration: 1000, delay: 0 })
+
   const brideInfo = couple?.brideInfo || {}
   const groomInfo = couple?.groomInfo || {}
 
   // Get gallery images for bride and groom
-  const brideGalleryImages = galleryImages.filter(img => 
-    img.gallery_category === 'bride' || 
+  const brideGalleryImages = galleryImages.filter(img =>
+    img.gallery_category === 'bride' ||
     img.section_type === 'gallery_bride' ||
     img.gallery_category === 'bride_photo'
   )
-  const groomGalleryImages = galleryImages.filter(img => 
-    img.gallery_category === 'groom' || 
+  const groomGalleryImages = galleryImages.filter(img =>
+    img.gallery_category === 'groom' ||
     img.section_type === 'gallery_groom' ||
     img.gallery_category === 'groom_photo'
   )
@@ -60,19 +63,24 @@ export function WeddingCouple({
   const groomPhotoUrl = groomInfo.photoUrl || (groomGalleryImages.length > 0 ? groomGalleryImages[0].file_url : null)
 
   return (
-    <section 
-      id="couple" 
+    <section
+      id="couple"
       className="py-16 px-6 bg-white"
       style={{ fontFamily: fontFamily }}
     >
       <div className="max-w-6xl mx-auto">
         {/* Section Title */}
-        <h2 
-          className="text-3xl md:text-4xl font-serif text-center mb-12"
-          style={{ color: primaryColor }}
-        >
-          Meet the Couple
-        </h2>
+        <div ref={headerAnimation.ref}>
+          <h2
+            className="text-3xl md:text-4xl font-serif text-center mb-12"
+            style={{
+              color: primaryColor,
+              ...headerAnimation.style
+            }}
+          >
+            Meet the Couple
+          </h2>
+        </div>
         
         {/* Couple Grid */}
         <div className="grid md:grid-cols-2 gap-12">

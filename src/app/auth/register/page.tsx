@@ -6,7 +6,7 @@ import { APP_CONFIG } from '@/lib/config'
 
 export const metadata: Metadata = {
   title: `Create Account - ${APP_CONFIG.name}`,
-  description: 'Join Einvite to create beautiful wedding websites in minutes. Start your free trial today.',
+  description: 'Join ECardVite to create beautiful wedding websites in minutes. Start your free trial today.',
 }
 
 export default function RegisterPage() {

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
+import { useScrollAnimation, useIconAnimation } from '@/hooks/useScrollAnimation'
 
 interface GuestWish {
   id: string
@@ -47,6 +48,9 @@ export function WeddingWishes({
   groomName = 'Groom',
   userTier
 }: WeddingWishesProps) {
+  const iconAnimation = useIconAnimation({ duration: 1000, delay: 100 })
+  const headerAnimation = useScrollAnimation({ duration: 1000, delay: 200 })
+
   const [wishes, setWishes] = useState<GuestWish[]>([])
   const [config, setConfig] = useState<WishesConfig>({
     is_enabled: true,
@@ -59,7 +63,7 @@ export function WeddingWishes({
   const [loadingMore, setLoadingMore] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  
+
   // Form state
   const [formData, setFormData] = useState({
     guestName: '',
@@ -321,10 +325,10 @@ export function WeddingWishes({
   }
 
   return (
-    <section 
-      id="wishes" 
+    <section
+      id="wishes"
       className="py-16 px-6"
-      style={{ 
+      style={{
         fontFamily,
         backgroundColor: '#fafafa'
       }}
@@ -333,18 +337,25 @@ export function WeddingWishes({
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-4">
-            <Heart 
-              className="h-8 w-8 mr-3" 
-              style={{ color: primaryColor }}
-            />
-            <h2 
-              className="text-3xl md:text-4xl font-serif"
-              style={{ color: primaryColor }}
-            >
-              Guest Wishes
-            </h2>
+            <div ref={iconAnimation.ref} style={iconAnimation.style}>
+              <Heart
+                className="h-8 w-8 mr-3"
+                style={{ color: primaryColor }}
+              />
+            </div>
+            <div ref={headerAnimation.ref}>
+              <h2
+                className="text-3xl md:text-4xl font-serif"
+                style={{
+                  color: primaryColor,
+                  ...headerAnimation.style
+                }}
+              >
+                Guest Wishes
+              </h2>
+            </div>
           </div>
-          <p 
+          <p
             className="text-lg mb-8 max-w-2xl mx-auto"
             style={{ color: secondaryColor }}
           >

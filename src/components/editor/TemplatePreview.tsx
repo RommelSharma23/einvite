@@ -916,7 +916,7 @@ const TemplatePreview: React.FC<TemplatePreviewProps> = ({
 
       {/* Footer */}
       <section className="w-full px-6 py-6 bg-gray-100 text-center text-gray-500 text-sm">
-        <p>© 2025 {content.hero?.brideName} & {content.hero?.groomName} • Created with Einvite</p>
+        <p>© 2025 {content.hero?.brideName} & {content.hero?.groomName} • Created with ECardVite</p>
       </section>
     </div>
   )

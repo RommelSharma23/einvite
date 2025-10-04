@@ -14,7 +14,7 @@ export function Footer() {
               <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-2 rounded-lg">
                 <Heart className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold">eInvite</span>
+              <span className="text-xl font-bold">ECardVite</span>
             </Link>
             <p className="text-gray-400 text-sm">
               Creating beautiful wedding websites that celebrate love stories and bring couples closer to their guests.
@@ -105,7 +105,7 @@ export function Footer() {
             <div className="space-y-3 text-gray-400 text-sm">
               <div className="flex items-center space-x-2">
                 <Mail className="h-4 w-4" />
-                <span>support@einvite.com</span>
+                <span>support@ecardvite.com</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Phone className="h-4 w-4" />
@@ -123,7 +123,7 @@ export function Footer() {
         <div className="border-t border-gray-800 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-gray-400 text-sm">
-              © 2024 eInvite. All rights reserved.
+              © 2024 ECardVite. All rights reserved.
             </div>
             <div className="flex space-x-6 text-gray-400 text-sm">
               <Link href="#" className="hover:text-white transition-colors">

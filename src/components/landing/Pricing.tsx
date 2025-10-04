@@ -68,7 +68,7 @@ const fallbackPlans: PricingPlan[] = [
     },
     features: [
       { feature_name: 'Beautiful Templates', description: 'Access to premium templates', is_included: true },
-      { feature_name: 'Custom Domain', description: 'yourname.einvite.com', is_included: true },
+      { feature_name: 'Custom Domain', description: 'yourname.ecardvite.com', is_included: true },
       { feature_name: 'RSVP Management', description: 'Collect guest responses', is_included: true },
       { feature_name: 'Photo Gallery', description: 'Share your memories', is_included: true },
       { feature_name: 'Guest Limit', description: 'Up to 50 guests', is_included: true, feature_limit: 50 }
@@ -137,7 +137,7 @@ const fallbackPlans: PricingPlan[] = [
       { feature_name: 'Priority Support', description: '24/7 dedicated support', is_included: true },
       { feature_name: 'Advanced Analytics', description: 'Detailed visitor insights', is_included: true },
       { feature_name: 'Guest Limit', description: 'Unlimited guests', is_included: true },
-      { feature_name: 'White-label', description: 'Remove eInvite branding', is_included: true }
+      { feature_name: 'White-label', description: 'Remove ECardVite branding', is_included: true }
     ]
   }
 ]

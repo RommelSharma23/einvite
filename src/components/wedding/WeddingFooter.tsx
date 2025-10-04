@@ -75,8 +75,6 @@ export function WeddingFooter({
         {/* Footer Info - Single Line */}
         <div className="text-white/60 text-sm mb-3">
           <div className="flex items-center justify-center space-x-3 flex-wrap">
-            <span>Views: {viewCount.toLocaleString()}</span>
-            <span>•</span>
             <span>Made with ❤️</span>
             <span>•</span>
             <span>Last updated: {new Date().toLocaleDateString('en-IN', {
@@ -93,7 +91,7 @@ export function WeddingFooter({
           <div className="flex items-center justify-center space-x-2 text-white/40 text-xs flex-wrap">
             <span>© {new Date().getFullYear()} {brideName} & {groomName}</span>
             <span>•</span>
-            <span>Created with Einvite</span>
+            <span>Created with ECardVite</span>
           </div>
         </div>
       </div>

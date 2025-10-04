@@ -1,4 +1,6 @@
 // src/components/website/RSVPForm.tsx
+'use client'
+
 import React, { useState, useEffect } from 'react';
 import { Heart, Users, Utensils, Music, MessageSquare, CheckCircle, Calendar, Send, Loader, ChevronDown, ChevronUp } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
@@ -54,9 +56,9 @@ interface ApiResponse {
   error?: string;
 }
 
-const RSVPForm: React.FC<RSVPFormProps> = ({ 
-  projectId, 
-  supabase, 
+const RSVPForm: React.FC<RSVPFormProps> = ({
+  projectId,
+  supabase,
   onSubmitSuccess,
   primaryColor = '#2563eb',
   secondaryColor = '#7c3aed'
@@ -79,7 +81,7 @@ const RSVPForm: React.FC<RSVPFormProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [successData, setSuccessData] = useState<{ guestName: string; attendanceStatus: string } | null>(null);
-  
+
   // Collapsible state
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -260,9 +262,9 @@ const RSVPForm: React.FC<RSVPFormProps> = ({
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto" id="rsvp">
       {/* Collapsible Header */}
-      <div 
+      <div
         className="bg-white rounded-t-lg shadow-lg p-6 cursor-pointer transition-all duration-200 hover:shadow-xl"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -271,7 +273,7 @@ const RSVPForm: React.FC<RSVPFormProps> = ({
             <h2 className="text-3xl font-bold text-gray-800 mb-2">{config.title}</h2>
             <p className="text-gray-600 leading-relaxed">{config.subtitle}</p>
             {config.deadlineDate && (
-              <p 
+              <p
                 className="text-sm mt-2 font-medium"
                 style={{ color: secondaryColor }}
               >

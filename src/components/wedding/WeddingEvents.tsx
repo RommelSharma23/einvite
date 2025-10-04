@@ -3,6 +3,7 @@
 'use client'
 
 import { Calendar, Clock, MapPin } from 'lucide-react'
+import { useScrollAnimation } from '@/hooks/useScrollAnimation'
 
 interface WeddingEvent {
   id: string
@@ -26,6 +27,8 @@ export function WeddingEvents({
   secondaryColor,
   fontFamily
 }: WeddingEventsProps) {
+  const headerAnimation = useScrollAnimation({ duration: 1000, delay: 0 })
+
   // Don't render if no events
   if (!events || events.length === 0) {
     return null
@@ -51,42 +54,59 @@ export function WeddingEvents({
   }
 
   return (
-    <section 
-      id="events" 
-      className="py-16 px-6" 
-      style={{ 
+    <section
+      id="events"
+      className="py-16 px-6"
+      style={{
         backgroundColor: `${secondaryColor}08`,
         fontFamily: fontFamily
       }}
     >
       <div className="max-w-6xl mx-auto">
         {/* Section Title */}
-        <h2 
-          className="text-3xl md:text-4xl font-serif text-center mb-12"
-          style={{ color: primaryColor }}
-        >
-          Wedding Events
-        </h2>
+        <div ref={headerAnimation.ref}>
+          <h2
+            className="text-3xl md:text-4xl font-serif text-center mb-12"
+            style={{
+              color: primaryColor,
+              ...headerAnimation.style
+            }}
+          >
+            Wedding Events
+          </h2>
+        </div>
         
         {/* Events Grid */}
         <div className="grid gap-8">
-          {events.map((event, index) => (
-            <div 
-              key={event.id}
-              className="bg-white rounded-2xl shadow-lg p-6 md:p-8 border-l-4 hover:shadow-xl transition-shadow duration-300"
-              style={{ 
-                borderLeftColor: index % 2 === 0 ? primaryColor : secondaryColor 
-              }}
-            >
-              <div className="grid md:grid-cols-3 gap-6">
-                {/* Event Details */}
-                <div className="md:col-span-2">
-                  <h3 
-                    className="text-2xl md:text-3xl font-semibold mb-3"
-                    style={{ color: primaryColor }}
-                  >
-                    {event.event_name}
-                  </h3>
+          {events.map((event, index) => {
+            // Create animation hook for each event name with staggered delay
+            const eventNameAnimation = useScrollAnimation({
+              duration: 1000,
+              delay: index * 150
+            })
+
+            return (
+              <div
+                key={event.id}
+                className="bg-white rounded-2xl shadow-lg p-6 md:p-8 border-l-4 hover:shadow-xl transition-shadow duration-300"
+                style={{
+                  borderLeftColor: index % 2 === 0 ? primaryColor : secondaryColor
+                }}
+              >
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* Event Details */}
+                  <div className="md:col-span-2">
+                    <div ref={eventNameAnimation.ref}>
+                      <h3
+                        className="text-2xl md:text-3xl font-semibold mb-3"
+                        style={{
+                          color: primaryColor,
+                          ...eventNameAnimation.style
+                        }}
+                      >
+                        {event.event_name}
+                      </h3>
+                    </div>
                   
                   {/* Event Description */}
                   {event.event_description && (
@@ -148,9 +168,10 @@ export function WeddingEvents({
                     )}
                   </div>
                 </div>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Event Count Summary */}

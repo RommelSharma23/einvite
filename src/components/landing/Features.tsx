@@ -56,7 +56,7 @@ const features = [
   {
     icon: Globe,
     title: "Custom Domains",
-    description: "Get a personalized web address like yournames.einvite.com or use your own domain.",
+    description: "Get a personalized web address like yournames.ecardvite.com or use your own domain.",
     color: "from-blue-600 to-blue-700"
   },
   {
@@ -141,7 +141,7 @@ export function Features() {
               Ready to Create Your Dream Wedding Website?
             </h3>
             <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-              Join thousands of happy couples who have already created their perfect wedding websites with eInvite.
+              Join thousands of happy couples who have already created their perfect wedding websites with ECardVite.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl">

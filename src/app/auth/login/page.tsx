@@ -6,7 +6,7 @@ import { APP_CONFIG } from '@/lib/config'
 
 export const metadata: Metadata = {
   title: `Login - ${APP_CONFIG.name}`,
-  description: 'Sign in to your Einvite account to manage your wedding websites.',
+  description: 'Sign in to your ECardVite account to manage your wedding websites.',
 }
 
 export default function LoginPage() {

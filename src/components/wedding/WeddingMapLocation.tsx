@@ -9,14 +9,15 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { LeafletMap } from '@/components/ui/LeafletMap'
 import { getDirectionsUrl } from '@/lib/mapConfig'
-import { 
-  MapPin, 
-  Navigation, 
-  ExternalLink, 
+import {
+  MapPin,
+  Navigation,
+  ExternalLink,
   Clock,
   Phone,
   Globe
 } from 'lucide-react'
+import { useScrollAnimation, useIconAnimation } from '@/hooks/useScrollAnimation'
 
 export interface VenueLocation {
   venueName: string
@@ -44,6 +45,9 @@ export function WeddingMapLocation({
   brideName = 'Bride',
   groomName = 'Groom'
 }: WeddingMapLocationProps) {
+  const iconAnimation = useIconAnimation({ duration: 1000, delay: 100 })
+  const headerAnimation = useScrollAnimation({ duration: 1000, delay: 200 })
+
   const [directionsDropdown, setDirectionsDropdown] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
@@ -122,21 +126,24 @@ export function WeddingMapLocation({
     <div className="container mx-auto px-4">
       {/* Section Header */}
       <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center p-3 bg-white rounded-full shadow-lg mb-6">
-          <MapPin 
-            className="h-8 w-8" 
+        <div ref={iconAnimation.ref} className="inline-flex items-center justify-center p-3 bg-white rounded-full shadow-lg mb-6" style={iconAnimation.style}>
+          <MapPin
+            className="h-8 w-8"
             style={{ color: primaryColor }}
           />
         </div>
-        <h2 
-          className="text-3xl md:text-4xl font-bold mb-4"
-          style={{ 
-            fontFamily,
-            color: primaryColor 
-          }}
-        >
-          Wedding Venue
-        </h2>
+        <div ref={headerAnimation.ref}>
+          <h2
+            className="text-3xl md:text-4xl font-bold mb-4"
+            style={{
+              fontFamily,
+              color: primaryColor,
+              ...headerAnimation.style
+            }}
+          >
+            Wedding Venue
+          </h2>
+        </div>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Join us at our beautiful venue for the celebration of {brideName} & {groomName}'s wedding
         </p>

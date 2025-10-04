@@ -2,26 +2,26 @@
 
 export const APP_CONFIG = {
   // App Identity
-  name: 'Einvite',
+  name: 'ECardVite',
   tagline: 'Create Beautiful Wedding Websites in Minutes',
   description: 'Design stunning, mobile-optimized wedding invitation websites with ease',
   version: '1.0.0',
-  
+
   // Company Details
   company: {
-    name: 'Einvite',
-    email: 'support@einvite.com',
+    name: 'ECardVite',
+    email: 'support@ecardvite.com',
     phone: '+91-9876543210',
     address: 'Jaipur, Rajasthan, India',
-    website: 'https://einvite.com'
+    website: 'https://ecardvite.com'
   },
 
   // URLs
   urls: {
     app: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-    marketing: 'https://einvite.com',
-    support: 'https://support.einvite.com',
-    blog: 'https://blog.einvite.com'
+    marketing: 'https://ecardvite.com',
+    support: 'https://support.ecardvite.com',
+    blog: 'https://blog.ecardvite.com'
   },
 
   // Subscription Tiers
@@ -229,16 +229,16 @@ export const APP_CONFIG = {
 
   // Social Media Links
   socialMedia: {
-    facebook: 'https://facebook.com/einvite',
-    instagram: 'https://instagram.com/einvite',
-    twitter: 'https://twitter.com/einvite',
-    youtube: 'https://youtube.com/einvite'
+    facebook: 'https://facebook.com/ecardvite',
+    instagram: 'https://instagram.com/ecardvite',
+    twitter: 'https://twitter.com/ecardvite',
+    youtube: 'https://youtube.com/ecardvite'
   },
 
   // Contact Information
   contact: {
-    supportEmail: 'support@einvite.com',
-    salesEmail: 'sales@einvite.com',
+    supportEmail: 'support@ecardvite.com',
+    salesEmail: 'sales@ecardvite.com',
     phone: '+91-9876543210',
     whatsapp: '+91-9876543210',
     address: {
@@ -252,7 +252,7 @@ export const APP_CONFIG = {
 
   // SEO Configuration
   seo: {
-    defaultTitle: 'Einvite - Create Beautiful Wedding Websites',
+    defaultTitle: 'ECardVite - Create Beautiful Wedding Websites',
     defaultDescription: 'Design stunning, mobile-optimized wedding invitation websites with ease. Choose from beautiful templates and customize everything.',
     keywords: ['wedding website', 'wedding invitation', 'digital invitation', 'wedding card', 'India'],
     ogImage: '/images/og-image.png'

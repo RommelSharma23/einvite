@@ -93,7 +93,7 @@ export function Hero() {
                     <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                   </div>
                   <div className="flex-1 bg-white rounded-md px-3 py-1 text-xs text-gray-500 ml-4">
-                    sarah-and-john.einvite.com
+                    sarah-and-john.ecardvite.com
                   </div>
                 </div>
 

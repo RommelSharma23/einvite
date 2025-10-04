@@ -67,8 +67,8 @@ export function Contact() {
                   <Mail className="w-5 h-5 text-purple-600 mt-1" />
                   <div>
                     <p className="font-medium text-gray-900">Email Us</p>
-                    <p className="text-gray-600">support@einvite.com</p>
-                    <p className="text-gray-600">hello@einvite.com</p>
+                    <p className="text-gray-600">support@ecardvite.com</p>
+                    <p className="text-gray-600">hello@ecardvite.com</p>
                   </div>
                 </div>
 

@@ -69,7 +69,7 @@ const mockTemplates: Template[] = [
   {
     id: '1',
     name: 'Royal Traditional',
-    description: 'Elegant traditional design with golden accents',
+    description: 'Elegant traditional design with golden accents, perfect for classic Indian weddings',
     preview_image_url: undefined,
     category: 'traditional',
     configuration: {
@@ -79,54 +79,6 @@ const mockTemplates: Template[] = [
     tier_required: 'free',
     is_active: true,
     popularity_score: 95,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: '2',
-    name: 'Modern Minimalist',
-    description: 'Clean, contemporary design with subtle animations',
-    preview_image_url: undefined,
-    category: 'modern',
-    configuration: {
-      colors: ['#2563EB', '#F8FAFC', '#1E293B'],
-      sections: ['hero', 'couple', 'events', 'venue', 'memories']
-    },
-    tier_required: 'silver',
-    is_active: true,
-    popularity_score: 88,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: '3',
-    name: 'Floral Romance',
-    description: 'Beautiful floral patterns with romantic touch',
-    preview_image_url: undefined,
-    category: 'rustic',
-    configuration: {
-      colors: ['#F472B6', '#FEF3F2', '#1F2937'],
-      sections: ['hero', 'couple', 'events', 'venue', 'memories', 'wishes']
-    },
-    tier_required: 'gold',
-    is_active: true,
-    popularity_score: 92,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z'
-  },
-  {
-    id: '4',
-    name: 'Destination Bliss',
-    description: 'Perfect for beach and destination weddings',
-    preview_image_url: undefined,
-    category: 'destination',
-    configuration: {
-      colors: ['#0EA5E9', '#F0F9FF', '#164E63'],
-      sections: ['hero', 'couple', 'events', 'venue', 'memories', 'rsvp']
-    },
-    tier_required: 'platinum',
-    is_active: true,
-    popularity_score: 85,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z'
   }
@@ -668,6 +620,75 @@ export default function TemplatesPage() {
             </p>
           </div>
         )}
+
+        {/* Coming Soon Section */}
+        <div className="mt-16 mb-8">
+          <div className="flex items-center mb-8">
+            <div className="h-px bg-gradient-to-r from-transparent via-purple-300 to-transparent flex-1"></div>
+            <div className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full">
+              <span className="text-white font-semibold text-sm flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Coming Soon
+              </span>
+            </div>
+            <div className="h-px bg-gradient-to-r from-transparent via-purple-300 to-transparent flex-1"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { name: 'Modern Minimalist', category: 'modern', icon: '✨' },
+              { name: 'Floral Romance', category: 'rustic', icon: '🌸' },
+              { name: 'Destination Bliss', category: 'destination', icon: '🏖️' }
+            ].map((template, idx) => (
+              <Card key={idx} className="group relative overflow-hidden border-2 border-dashed border-gray-300">
+                <div className="relative aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-6xl mb-4 opacity-20">{template.icon}</div>
+                      <Sparkles className="h-12 w-12 text-gray-300 mx-auto animate-pulse" />
+                    </div>
+                  </div>
+
+                  {/* Coming Soon Badge */}
+                  <div className="absolute top-3 right-3">
+                    <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">
+                      Coming Soon
+                    </Badge>
+                  </div>
+                </div>
+
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-600">{template.name}</CardTitle>
+                  <CardDescription>New template arriving soon</CardDescription>
+                </CardHeader>
+
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-400 capitalize flex items-center gap-1">
+                      <span>{template.icon}</span>
+                      <span>{template.category}</span>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled
+                      className="opacity-50 cursor-not-allowed"
+                    >
+                      Coming Soon
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-gray-600 text-sm">
+              More beautiful templates are on the way! Check back soon for new designs.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Project Creation Modal */}

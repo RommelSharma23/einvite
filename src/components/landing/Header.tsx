@@ -17,7 +17,7 @@ export function Header() {
             <div className="bg-gradient-to-r from-pink-500 to-purple-600 p-2 rounded-lg">
               <Heart className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">eInvite</span>
+            <span className="text-xl font-bold text-gray-900">ECardVite</span>
           </Link>
 
           {/* Desktop Navigation */}
